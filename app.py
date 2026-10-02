@@ -49,7 +49,6 @@ def confirm_logout_dialog():
         if st.button("Отмена", width="stretch"):
             st.rerun()
 
-# Стили оформления страницы, Drawer-меню и модальных окон
 STYLE_CSS = """
 <style>
 /* 1. Отключаем полноэкранный зум на фотографиях */
@@ -57,16 +56,20 @@ button[title="View fullscreen"] {
     display: none !important;
 }
 
-/* 2. Центрирование модального диалогового окна строго по вертикали и горизонтали */
+/* 2. Центрирование модального окна строго посередине экрана */
+[data-testid="stModal"],
+div[data-baseweb="modal"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-top: 0 !important;
+}
+
 div[role="dialog"] {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    margin: 0 !important;
-    max-height: 90vh !important;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.25) !important;
+    margin: auto !important;
+    max-height: 85vh !important;
     border-radius: 12px !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* 3. Отступ основного контента */
@@ -77,24 +80,25 @@ div[role="dialog"] {
     margin: 0 auto !important;
 }
 
-/* 4. Сайдбар: контрастный фон и полная высота */
+/* 4. Сайдбар: контрастный фон */
 [data-testid="stSidebar"],
-[data-testid="stSidebarContent"] {
+[data-testid="stSidebarContent"],
+[data-testid="stSidebarUserContent"] {
     background-color: #eef1f5 !important;
     border-right: 1px solid #dce1e7 !important;
-}
-
-/* Внутренний контейнер сайдбара — чистый flex-столбец */
-[data-testid="stSidebarUserContent"] {
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100vh !important;
-    padding: 1rem 0.9rem 1.2rem 0.9rem !important;
-    box-sizing: border-box !important;
     overflow: hidden !important;
+    height: 100vh !important;
+    box-sizing: border-box !important;
 }
 
-/* Профиль вверху */
+/* Скрываем скроллбар сайдбара */
+[data-testid="stSidebarContent"]::-webkit-scrollbar,
+[data-testid="stSidebarUserContent"]::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+}
+
+/* Шапка профиля */
 .profile-box {
     display: flex;
     align-items: center;
@@ -102,7 +106,6 @@ div[role="dialog"] {
     padding-bottom: 0.8rem;
     border-bottom: 1px solid #dce1e7;
     margin-bottom: 0.8rem;
-    flex-shrink: 0;
 }
 .profile-avatar {
     width: 38px;
@@ -118,13 +121,12 @@ div[role="dialog"] {
     flex-shrink: 0;
 }
 
-/* Область истории: забирает ВСЁ свободное место между профилем и кнопками */
+/* Область истории: зафиксирована по высоте, чтобы не схлопывалась при пустой истории */
 .history-scroll-box {
-    flex-grow: 1 !important;
-    flex-shrink: 1 !important;
+    height: calc(100vh - 245px) !important;
+    max-height: calc(100vh - 245px) !important;
     overflow-y: auto !important;
     padding-right: 4px;
-    margin-bottom: 0.8rem !important;
     scrollbar-width: thin;
 }
 
@@ -139,24 +141,32 @@ div[role="dialog"] {
     box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
-/* Нижний блок с кнопками: фиксируется снизу и никогда не сжимается */
-.sidebar-footer-wrapper {
-    flex-shrink: 0 !important;
-    margin-top: auto !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    padding-top: 8px !important;
-    border-top: 1px solid #dce1e7 !important;
+/* Кнопки в сайдбаре: фиксируем внизу панели */
+[data-testid="stSidebar"] div.stButton:has(button[key="clear_hist_btn"]) {
+    position: fixed !important;
+    bottom: 68px !important;
+    left: 18px !important;
+    width: calc(100% - 36px) !important;
+    max-width: 295px !important;
+    z-index: 1000000 !important;
+}
+
+[data-testid="stSidebar"] div.stButton:has(button[key="logout_btn"]) {
+    position: fixed !important;
+    bottom: 22px !important;
+    left: 18px !important;
+    width: calc(100% - 36px) !important;
+    max-width: 295px !important;
+    z-index: 1000000 !important;
 }
 
 [data-testid="stSidebar"] div.stButton button {
-    border-radius: 6px !important;
     height: 38px !important;
     font-size: 0.85rem !important;
+    border-radius: 6px !important;
 }
 
-/* Круглые лабораторные индикаторы (без эмодзи) */
+/* Круглые индикаторы для легенды */
 .dot-indicator {
     display: inline-block;
     width: 9px;
@@ -192,9 +202,10 @@ def render_drawer_menu():
             unsafe_allow_html=True
         )
 
-        # История
+        # Заголовок
         st.markdown("<div style='font-weight: 600; font-size: 0.88rem; margin-bottom: 8px; color: #444;'>История исследований</div>", unsafe_allow_html=True)
         
+        # Получение истории
         history = gsheets.fetch_user_history(email)
         if history:
             cards = [
@@ -209,10 +220,10 @@ def render_drawer_menu():
         else:
             history_html = "<div style='color: #888; font-size: 0.85rem; padding: 10px 0;'>История исследований пуста.</div>"
 
+        # Скроллируемая область истории
         st.markdown(f'<div class="history-scroll-box">{history_html}</div>', unsafe_allow_html=True)
 
-        # Нижние действия: очистка истории и выход
-        st.write("")
+        # Нижние кнопки
         if st.button("Очистить историю", key="clear_hist_btn", width="stretch", type="secondary"):
             confirm_clear_history_dialog()
             
