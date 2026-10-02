@@ -97,19 +97,27 @@ button[data-testid="stSidebarCollapsedControl"] svg {
     justify-content: center;
 }
 
-/* Область истории: оставляем комфортный зазор под приподнятую кнопку */
-.history-scroll-box {
-    height: calc(100vh - 250px) !important;
-    max-height: calc(100vh - 250px) !important;
-    overflow-y: auto !important;
-    padding-right: 6px;
+/* Отключаем полосу прокрутки у самого сайдбара */
+[data-testid="stSidebarContent"],
+[data-testid="stSidebarUserContent"] {
+    overflow: hidden !important;
+    height: 100vh !important;
+    padding-bottom: 0 !important;
 }
 
-/* Кнопка выхода: приподнимаем на 48px от нижнего края экрана */
+/* Область истории: компактная адаптивная высота, скролл только при переполнении записями */
+.history-scroll-box {
+    max-height: calc(100vh - 280px) !important;
+    overflow-y: auto !important;
+    padding-right: 4px;
+    scrollbar-width: thin;
+}
+
+/* Кнопка выхода: аккуратный отступ 32px от нижнего края */
 div[data-testid="stSidebar"] div.stButton:has(button[key="logout_btn"]),
 div[data-testid="stSidebar"] div.stButton {
     position: fixed !important;
-    bottom: 80px !important;
+    bottom: 32px !important;
     left: 20px !important;
     width: calc(100% - 40px) !important;
     max-width: 295px !important;
