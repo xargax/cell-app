@@ -92,38 +92,58 @@ def render_right_drawer():
 
 # --- ЭКРАН 1: АВТОРИЗАЦИЯ ---
 if st.session_state.screen == "auth":
-    st.title("🔬 Подсчёт концентрации клеток")
-    col1, col2, _ = st.columns([1, 1, 1])
+    # Центрируем заголовки и задаем отступы
+    st.markdown(
+        """
+        <style>
+        .auth-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        </style>
+        <div class="auth-container">
+            <h1>🔬 Подсчёт концентрации клеток</h1>
+            <p style="color: gray;">Автоматический анализ микропрепаратов</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     
-    with col1:
-        email = st.text_input("Электронная почта").strip().lower()
-        password = st.text_input("Пароль", type="password")
-        action = st.radio("Действие", ["Вход", "Регистрация"], horizontal=True)
-        
-        if st.button("Продолжить", use_container_width=True):
-            if not email or not password:
-                st.error("Заполните оба поля")
-            elif "@" not in email:
-                st.error("Введите корректный email")
-            else:
-                if action == "Вход":
-                    user = gsheets.get_or_create_user(email, mode="login")
-                    if user and auth.verify_password(password, user["password_hash"]):
-                        st.session_state.user_email = email
-                        st.session_state.screen = "upload"
-                        st.rerun()
-                    else:
-                        st.error("Неверный логин или пароль")
+    # Сетка с центральной колонкой: [боковой отступ, центральная форма, боковой отступ]
+    left_spacer, center_col, right_spacer = st.columns([1.5, 2, 1.5])
+    
+    with center_col:
+        with st.container(border=True):
+            email = st.text_input("Электронная почта").strip().lower()
+            password = st.text_input("Пароль", type="password")
+            action = st.radio("Действие", ["Вход", "Регистрация"], horizontal=True)
+            
+            st.write("") # Небольшой вертикальный отступ
+            
+            if st.button("Продолжить", type="primary", use_container_width=True):
+                if not email or not password:
+                    st.error("Заполните оба поля")
+                elif "@" not in email:
+                    st.error("Введите корректный email")
                 else:
-                    hashed = auth.hash_password(password)
-                    new_user = gsheets.get_or_create_user(email, hashed, mode="register")
-                    if new_user:
-                        st.session_state.user_email = email
-                        st.session_state.screen = "upload"
-                        st.rerun()
+                    if action == "Вход":
+                        user = gsheets.get_or_create_user(email, mode="login")
+                        if user and auth.verify_password(password, user["password_hash"]):
+                            st.session_state.user_email = email
+                            st.session_state.screen = "upload"
+                            st.rerun()
+                        else:
+                            st.error("Неверный логин или пароль")
                     else:
-                        st.error("Пользователь с такой почтой уже существует")
-
+                        hashed = auth.hash_password(password)
+                        new_user = gsheets.get_or_create_user(email, hashed, mode="register")
+                        if new_user:
+                            st.session_state.user_email = email
+                            st.session_state.screen = "upload"
+                            st.rerun()
+                        else:
+                            st.error("Пользователь с такой почтой уже существует")
+                            
 # --- ЭКРАН 2: ЗАГРУЗКА ИЗОБРАЖЕНИЙ ---
 elif st.session_state.screen == "upload":
     render_right_drawer()
