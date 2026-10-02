@@ -25,7 +25,7 @@ if "results" not in st.session_state:
 # Стили оформления страницы и Drawer-меню
 STYLE_CSS = """
 <style>
-/* Отступ сверху для контента */
+/* 1. Отступ основного контента от верхней панели Streamlit */
 .block-container {
     max-width: 840px !important;
     padding-top: 5rem !important;
@@ -33,80 +33,55 @@ STYLE_CSS = """
     margin: 0 auto !important;
 }
 
-/* Настройка самого сайдбара */
-[data-testid="stSidebar"] {
-    background-color: #ffffff !important;
-    border-right: 1px solid #e9ecef !important;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.08) !important;
-    z-index: 999999 !important;
-}
-
-/* Внутренний контейнер сайдбара — чистый Flexbox на всю высоту экрана */
+/* 2. Поднимаем всё содержимое сайдбара к самому верху и убираем внешний ползунок */
+[data-testid="stSidebar"],
+[data-testid="stSidebarContent"],
 [data-testid="stSidebarUserContent"] {
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100vh !important;
-    padding: 1.5rem 1rem 1.8rem 1rem !important;
-    box-sizing: border-box !important;
+    padding-top: 0.8rem !important;
+    padding-bottom: 0 !important;
     overflow: hidden !important;
+    height: 100vh !important;
 }
 
-/* Кнопка открытия сайдбара (слева вверху) */
-button[data-testid="stSidebarCollapsedControl"] {
-    display: flex !important;
-    position: fixed !important;
-    top: 16px !important;
-    left: 20px !important;
-    z-index: 1000000 !important;
-    background: #ff4b4b !important;
-    color: white !important;
-    border-radius: 50% !important;
-    width: 44px !important;
-    height: 44px !important;
-    box-shadow: 0 2px 10px rgba(255, 75, 75, 0.35) !important;
-    justify-content: center !important;
-    align-items: center !important;
-    border: none !important;
-}
-button[data-testid="stSidebarCollapsedControl"] svg {
-    fill: white !important;
-    stroke: white !important;
-    width: 22px !important;
-    height: 22px !important;
+/* Скрываем стандартный скроллбар у всего сайдбара во всех браузерах */
+[data-testid="stSidebarContent"]::-webkit-scrollbar,
+[data-testid="stSidebarUserContent"]::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
 }
 
-/* Профиль вверху */
+/* 3. Оформление карточки профиля вверху */
 .profile-box {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 1rem;
-    flex-shrink: 0;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid #edf0f2;
+    margin-bottom: 0.8rem;
 }
 .profile-avatar {
     width: 42px;
     height: 42px;
     background: linear-gradient(135deg, #ff4b4b, #ff7676);
     color: white;
-    font-weight: bold;
-    font-size: 1.15rem;
+    font-weight: 700;
+    font-size: 1.2rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
-/* Область истории: растягивается на ВСЮ доступную высоту и скроллится */
+/* 4. Расширенная область истории (занимает всё пространство и скроллится только внутри при избытке записей) */
 .history-scroll-box {
-    flex-grow: 1 !important;
+    height: calc(100vh - 215px) !important;
+    max-height: calc(100vh - 215px) !important;
     overflow-y: auto !important;
-    padding-right: 6px;
-    margin-bottom: 1rem !important;
+    padding-right: 4px;
+    scrollbar-width: thin;
 }
 
-/* Карточки истории */
 .history-item {
     background-color: #f8f9fa;
     border-radius: 8px;
@@ -116,12 +91,19 @@ button[data-testid="stSidebarCollapsedControl"] svg {
     font-size: 0.86rem;
 }
 
-/* Нижний блок: прижимается к низу и не сжимается */
-.sidebar-bottom-block {
-    margin-top: auto !important;
-    padding-top: 12px;
-    border-top: 1px solid #eee;
-    flex-shrink: 0 !important;
+/* 5. Кнопка выхода: закреплена в самом низу с комфортным отступом 24px */
+[data-testid="stSidebar"] div.stButton {
+    position: fixed !important;
+    bottom: 24px !important;
+    left: 18px !important;
+    width: calc(100% - 36px) !important;
+    max-width: 295px !important;
+    z-index: 1000000 !important;
+}
+
+[data-testid="stSidebar"] div.stButton > button {
+    border-radius: 8px !important;
+    height: 42px !important;
 }
 </style>
 """
@@ -132,7 +114,7 @@ def render_drawer_menu():
     first_letter = email[0].upper()
 
     with st.sidebar:
-        # 1. Шапка профиля
+        # Секция 1: Профиль пользователя в самом верху
         st.markdown(
             f"""
             <div class="profile-box">
@@ -146,10 +128,10 @@ def render_drawer_menu():
             unsafe_allow_html=True
         )
 
-        # 2. История исследований
-        st.markdown("##### 📋 История исследований")
-        history = gsheets.fetch_user_history(email)
+        # Секция 2: Заголовок и расширенная область истории
+        st.markdown("<div style='font-weight: 600; font-size: 0.9rem; margin-bottom: 8px;'>📋 История исследований</div>", unsafe_allow_html=True)
         
+        history = gsheets.fetch_user_history(email)
         if history:
             history_html = "".join([
                 f"""
@@ -162,13 +144,12 @@ def render_drawer_menu():
                 for h in history
             ])
         else:
-            history_html = "<div style='color: #888; font-size: 0.88rem; padding: 12px 0;'>История исследований пока пуста.</div>"
+            history_html = "<div style='color: #888; font-size: 0.86rem; padding: 12px 0;'>История исследований пока пуста.</div>"
 
-        # Контейнер истории занимает ВСЁ пространство между профилем и низом
+        # Занимает всё пространство экрана
         st.markdown(f'<div class="history-scroll-box">{history_html}</div>', unsafe_allow_html=True)
 
-        # 3. Нижний блок с разделителем и кнопкой
-        st.markdown('<div class="sidebar-bottom-block"></div>', unsafe_allow_html=True)
+        # Секция 3: Кнопка выхода (зафиксирована стилями внизу сайдбара)
         if st.button("🚪 Выйти из аккаунта", key="logout_btn", use_container_width=True, type="secondary"):
             st.session_state.clear()
             st.session_state.screen = "auth"
