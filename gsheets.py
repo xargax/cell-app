@@ -24,7 +24,7 @@ def download_model_weights() -> str:
     drive_service = build("drive", "v3", credentials=creds)
     request = drive_service.files().get_media(fileId=config.MODEL_DRIVE_FILE_ID)
     
-    local_weights_path = "/tmp/best.pt"
+    local_weights_path = "/tmp/best.torchscript"
     fh = io.FileIO(local_weights_path, "wb")
     downloader = MediaIoBaseDownload(fh, request)
     done = False
