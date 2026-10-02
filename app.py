@@ -90,59 +90,88 @@ def render_right_drawer():
             st.session_state.screen = "auth"
             st.rerun()
 
+# Инициализация режима формы (если еще не выбран)
+if "auth_mode" not in st.session_state:
+    st.session_state.auth_mode = None
+
 # --- ЭКРАН 1: АВТОРИЗАЦИЯ ---
 if st.session_state.screen == "auth":
-    # Центрируем заголовки и задаем отступы
     st.markdown(
         """
         <style>
-        .auth-container {
+        .auth-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
         }
         </style>
-        <div class="auth-container">
+        <div class="auth-header">
             <h1>🔬 Подсчёт концентрации клеток</h1>
-            <p style="color: gray;">Автоматический анализ микропрепаратов</p>
+            <p style="color: gray; font-size: 1.05rem;">Автоматический анализ микропрепаратов</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    
-    # Сетка с центральной колонкой: [боковой отступ, центральная форма, боковой отступ]
-    left_spacer, center_col, right_spacer = st.columns([1.5, 2, 1.5])
-    
-    with center_col:
-        with st.container(border=True):
-            email = st.text_input("Электронная почта").strip().lower()
-            password = st.text_input("Пароль", type="password")
-            action = st.radio("Действие", ["Вход", "Регистрация"], horizontal=True)
-            
-            st.write("") # Небольшой вертикальный отступ
-            
-            if st.button("Продолжить", type="primary", use_container_width=True):
-                if not email or not password:
-                    st.error("Заполните оба поля")
-                elif "@" not in email:
-                    st.error("Введите корректный email")
-                else:
-                    if action == "Вход":
-                        user = gsheets.get_or_create_user(email, mode="login")
-                        if user and auth.verify_password(password, user["password_hash"]):
-                            st.session_state.user_email = email
-                            st.session_state.screen = "upload"
-                            st.rerun()
-                        else:
-                            st.error("Неверный логин или пароль")
+
+    # Делаем форму уже: центральная колонка занимает меньше ширины
+    left_pad, center_box, right_pad = st.columns([2.2, 1.6, 2.2])
+
+    with center_box:
+        # Шаг 1: Выбор режима (кнопки)
+        b_col1, b_col2 = st.columns(2)
+        with b_col1:
+            if st.button("Вход", use_container_width=True, type="primary" if st.session_state.auth_mode == "login" else "secondary"):
+                st.session_state.auth_mode = "login"
+                st.rerun()
+        with b_col2:
+            if st.button("Регистрация", use_container_width=True, type="primary" if st.session_state.auth_mode == "register" else "secondary"):
+                st.session_state.auth_mode = "register"
+                st.rerun()
+
+        # Шаг 2: Появление формы при выборе
+        if st.session_state.auth_mode is not None:
+            mode_title = "Вход в систему" if st.session_state.auth_mode == "login" else "Создание аккаунта"
+            btn_title = "Войти" if st.session_state.auth_mode == "login" else "Зарегистрироваться"
+
+            with st.container(border=True):
+                st.markdown(f"<h4 style='text-align: center; margin-top:0;'>{mode_title}</h4>", unsafe_allow_html=True)
+                email = st.text_input("Электронная почта", placeholder="name@example.com").strip().lower()
+                password = st.text_input("Пароль", type="password", placeholder="••••••••")
+                
+                st.write("")
+                if st.button(btn_title, type="primary", use_container_width=True):
+                    if not email or not password:
+                        st.warning("Пожалуйста, заполните оба поля")
+                    elif "@" not in email or "." not in email:
+                        st.warning("Введите корректный адрес почты")
                     else:
-                        hashed = auth.hash_password(password)
-                        new_user = gsheets.get_or_create_user(email, hashed, mode="register")
-                        if new_user:
-                            st.session_state.user_email = email
-                            st.session_state.screen = "upload"
-                            st.rerun()
+                        # Проверка наличия секретов перед запросом к базе
+                        if "gcp_service_account" not in st.secrets:
+                            st.error("Ошибка конфигурации: в настройках Streamlit не добавлены секреты [gcp_service_account].")
                         else:
-                            st.error("Пользователь с такой почтой уже существует")
+                            try:
+                                if st.session_state.auth_mode == "login":
+                                    user = gsheets.get_or_create_user(email, mode="login")
+                                    if not user:
+                                        st.error("Пользователь с такой почтой не найден. Пожалуйста, зарегистрируйтесь.")
+                                    elif auth.verify_password(password, user.get("password_hash", "")):
+                                        st.session_state.user_email = email
+                                        st.session_state.screen = "upload"
+                                        st.rerun()
+                                    else:
+                                        st.error("Неверный пароль. Попробуйте снова.")
+                                else:
+                                    hashed = auth.hash_password(password)
+                                    new_user = gsheets.get_or_create_user(email, hashed, mode="register")
+                                    if new_user:
+                                        st.success("Регистрация успешна!")
+                                        st.session_state.user_email = email
+                                        st.session_state.screen = "upload"
+                                        st.rerun()
+                                    else:
+                                        st.error("Пользователь с такой почтой уже существует. Выберите «Вход».")
+                            except Exception as e:
+                                st.error(f"Не удалось подключиться к базе данных: {e}")
                             
 # --- ЭКРАН 2: ЗАГРУЗКА ИЗОБРАЖЕНИЙ ---
 elif st.session_state.screen == "upload":
