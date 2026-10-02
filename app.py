@@ -291,8 +291,13 @@ elif st.session_state.screen == "processing":
 
     for i, item in enumerate(images):
         status_text.caption(f"Обработка изображения {i+1} из {total}...")
-        ann_img, count = model.process_single_image(item["bytes"], model_instance)
-        processed.append({"annotated": ann_img, "count": count, "name": item["name"]})
+        ann_img, count, class_breakdown = model.process_single_image(item["bytes"], model_instance)
+        processed.append({
+            "annotated": ann_img, 
+            "count": count, 
+            "name": item["name"],
+            "classes": class_breakdown
+        })
         counts.append(count)
         progress_bar.progress(int(20 + (i + 1) * step))
 
