@@ -51,12 +51,12 @@ def confirm_logout_dialog():
 
 STYLE_CSS = """
 <style>
-/* 1. Отключаем полноэкранный зум на фотографиях */
+/* 1. Отключаем полноэкранный зум на фото */
 button[title="View fullscreen"] {
     display: none !important;
 }
 
-/* 2. Центрирование модального окна строго в центре экрана */
+/* 2. Центрирование модальных окон */
 [data-testid="stDialog"],
 [data-testid="stModalContainer"],
 [data-testid="stModal"] {
@@ -83,23 +83,28 @@ div[role="dialog"] {
     border-radius: 12px !important;
 }
 
-/* 3. Центрирование и компактная ширина рабочей области */
+/* 3. Рабочая область: строго по центру оставшегося экрана */
 .block-container {
-    max-width: 740px !important;
-    padding-top: 4rem !important;
+    max-width: 760px !important;
+    padding-top: 3.5rem !important;
     padding-bottom: 3rem !important;
-    margin: 0 auto !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
-/* 4. Сайдбар */
+/* 4. Сайдбар Drawer: сдвиг элементов влево и чистые отступы */
 [data-testid="stSidebar"],
-[data-testid="stSidebarContent"],
-[data-testid="stSidebarUserContent"] {
+[data-testid="stSidebarContent"] {
     background-color: #eef1f5 !important;
     border-right: 1px solid #dce1e7 !important;
     overflow: hidden !important;
     height: 100vh !important;
     box-sizing: border-box !important;
+}
+
+[data-testid="stSidebarUserContent"] {
+    padding: 1rem 0.8rem 1rem 0.8rem !important;
+    overflow: hidden !important;
 }
 
 [data-testid="stSidebarContent"]::-webkit-scrollbar,
@@ -112,18 +117,18 @@ div[role="dialog"] {
 .profile-box {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     padding-bottom: 0.8rem;
     border-bottom: 1px solid #dce1e7;
     margin-bottom: 0.8rem;
 }
 .profile-avatar {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     background: linear-gradient(135deg, #ff4b4b, #ff7676);
     color: white;
     font-weight: 700;
-    font-size: 1.05rem;
+    font-size: 1rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -131,12 +136,13 @@ div[role="dialog"] {
     flex-shrink: 0;
 }
 
-/* Область истории */
+/* Область истории: прижата влево */
 .history-scroll-box {
     height: calc(100vh - 290px) !important;
     max-height: calc(100vh - 290px) !important;
     overflow-y: auto !important;
-    padding-right: 4px;
+    padding-right: 2px;
+    margin-left: 0 !important;
     scrollbar-width: thin;
 }
 
@@ -144,35 +150,61 @@ div[role="dialog"] {
     background-color: #ffffff;
     border-radius: 6px;
     border: 1px solid #dce1e7;
-    padding: 8px 12px;
+    padding: 8px 10px;
     margin-bottom: 8px;
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
-/* 5. Кнопки в сайдбаре: сдвинуты влево с отступом от правой полосы */
+/* 5. Кнопки в Drawer: сдвинуты левее (left: 12px) и не задевают разделительную полосу */
 [data-testid="stSidebar"] div.stButton:has(button[key="clear_hist_btn"]) {
     position: fixed !important;
-    bottom: 115px !important;
-    left: 16px !important;
-    width: calc(100% - 48px) !important;
-    max-width: 270px !important;
+    bottom: 110px !important;
+    left: 12px !important;
+    width: calc(100% - 24px) !important;
+    max-width: 260px !important;
     z-index: 1000000 !important;
 }
 
 [data-testid="stSidebar"] div.stButton:has(button[key="logout_btn"]) {
     position: fixed !important;
-    bottom: 65px !important;
-    left: 16px !important;
-    width: calc(100% - 48px) !important;
-    max-width: 270px !important;
+    bottom: 60px !important;
+    left: 12px !important;
+    width: calc(100% - 24px) !important;
+    max-width: 260px !important;
     z-index: 1000000 !important;
 }
 
 [data-testid="stSidebar"] div.stButton button {
     height: 38px !important;
-    font-size: 0.85rem !important;
+    font-size: 0.84rem !important;
     border-radius: 6px !important;
+}
+
+/* 6. Карточки метрик (число видно целиком, без троеточия) */
+.stat-card {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: center;
+}
+.stat-label {
+    font-size: 0.82rem;
+    color: #666;
+    margin-bottom: 4px;
+}
+.stat-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #111;
+    white-space: nowrap;
+}
+.stat-unit {
+    font-size: 0.85rem;
+    color: #888;
+    font-weight: normal;
+    margin-left: 4px;
 }
 
 /* Индикаторы легенды */
@@ -415,21 +447,48 @@ elif st.session_state.screen == "processing":
 elif st.session_state.screen == "results":
     render_drawer_menu()
 
-    st.title("Результаты анализа")
+    st.markdown("<h2 style='text-align: center; margin-bottom: 1.5rem;'>Результаты анализа</h2>", unsafe_allow_html=True)
     res = st.session_state.results
 
-    # Основные метрики
+    # Вывод карточек метрик без обрезки текста
     m1, m2, m3 = st.columns(3)
-    m1.metric("Обработано полей", len(res["items"]))
-    m2.metric("В среднем клеток на поле", f"{res['avg_cells']:.1f}")
-    m3.metric("Итоговая концентрация", f"{res['concentration']:.2e} кл/мл")
+    with m1:
+        st.markdown(
+            f"""
+            <div class="stat-card">
+                <div class="stat-label">Обработано полей</div>
+                <div class="stat-value">{len(res["items"])}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with m2:
+        st.markdown(
+            f"""
+            <div class="stat-card">
+                <div class="stat-label">В среднем клеток на поле</div>
+                <div class="stat-value">{res['avg_cells']:.1f}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with m3:
+        st.markdown(
+            f"""
+            <div class="stat-card">
+                <div class="stat-label">Итоговая концентрация</div>
+                <div class="stat-value">{res['concentration']:.2e}<span class="stat-unit">кл/мл</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     st.write("")
     
     # Легенда
     st.markdown(
         """
-        <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 10px 16px; margin-bottom: 1.2rem; display: flex; gap: 24px; font-size: 0.88rem; align-items: center;">
+        <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 10px 16px; margin-bottom: 1.2rem; display: flex; justify-content: center; gap: 24px; font-size: 0.88rem; align-items: center;">
             <span style="font-weight: 600; color: #333;">Обозначения:</span>
             <span><span class="dot-indicator dot-viable"></span>Жизнеспособные</span>
             <span><span class="dot-indicator dot-dead"></span>Нежизнеспособные</span>
@@ -439,7 +498,7 @@ elif st.session_state.screen == "results":
         unsafe_allow_html=True
     )
 
-    # Сетка результатов: 3 колонки
+    # Сетка результатов: аккуратно центрированные карточки
     GRID_COLS = 3
     for row_start in range(0, len(res["items"]), GRID_COLS):
         row_items = res["items"][row_start:row_start + GRID_COLS]
