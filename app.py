@@ -50,51 +50,40 @@ def confirm_logout_dialog():
             st.rerun()
 
 # Стили оформления страницы и Drawer-меню
-STYLE_CSS = """
 <style>
-/* Отступ основного контента */
-.block-container {
-    max-width: 860px !important;
-    padding-top: 4.5rem !important;
-    padding-bottom: 3rem !important;
-    margin: 0 auto !important;
+/* 1. Отключаем полноэкранный зум картинок Streamlit */
+button[title="View fullscreen"] {
+    display: none !important;
 }
 
-/* Настройка боковой панели (чуть темнее основного фона) */
+/* 2. Контейнер сайдбара с правильным Flexbox без обрезания кнопок */
 [data-testid="stSidebar"],
 [data-testid="stSidebarContent"],
 [data-testid="stSidebarUserContent"] {
     background-color: #f4f5f7 !important;
     border-right: 1px solid #e2e5e9 !important;
-    padding-top: 0.8rem !important;
-    padding-bottom: 0 !important;
+    padding: 0.8rem 0.8rem 0.5rem 0.8rem !important;
     overflow: hidden !important;
     height: 100vh !important;
+    box-sizing: border-box !important;
 }
 
-/* Скрываем ползунки сайдбара */
-[data-testid="stSidebarContent"]::-webkit-scrollbar,
-[data-testid="stSidebarUserContent"]::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-}
-
-/* Профиль вверху */
+/* 3. Профиль пользователя */
 .profile-box {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding-bottom: 0.8rem;
+    gap: 10px;
+    padding-bottom: 0.6rem;
     border-bottom: 1px solid #e2e5e9;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.6rem;
 }
 .profile-avatar {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     background: linear-gradient(135deg, #ff4b4b, #ff7676);
     color: white;
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -102,52 +91,39 @@ STYLE_CSS = """
     flex-shrink: 0;
 }
 
-/* Область истории */
+/* 4. Область истории: запас снизу под 2 кнопки */
 .history-scroll-box {
-    height: calc(100vh - 250px) !important;
-    max-height: calc(100vh - 250px) !important;
+    height: calc(100vh - 220px) !important;
+    max-height: calc(100vh - 220px) !important;
     overflow-y: auto !important;
     padding-right: 4px;
     scrollbar-width: thin;
 }
 
-/* Карточка записи истории (белая на сером фоне) */
 .history-item {
     background-color: #ffffff;
     border-radius: 6px;
     border: 1px solid #e0e4e8;
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    font-size: 0.85rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    font-size: 0.82rem;
 }
 
-/* Контейнер нижних кнопок в сайдбаре */
-.sidebar-footer-actions {
-    position: fixed !important;
-    bottom: 20px !important;
-    left: 18px !important;
-    width: calc(100% - 36px) !important;
-    max-width: 295px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    z-index: 1000000 !important;
-}
-
-.sidebar-footer-actions button {
+/* 5. Кнопки в Drawer: прижаты к низу, чётко видны */
+[data-testid="stSidebar"] div.stButton button {
+    height: 34px !important;
+    font-size: 0.82rem !important;
     border-radius: 6px !important;
-    height: 38px !important;
-    font-size: 0.88rem !important;
+    padding: 0 8px !important;
 }
 
 /* Точечные маркеры */
 .dot-indicator {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
-    margin-right: 6px;
+    margin-right: 5px;
     vertical-align: middle;
 }
 .dot-viable { background-color: #0046ff; }
@@ -157,56 +133,6 @@ STYLE_CSS = """
     border: 1.5px solid #555555; 
 }
 </style>
-"""
-
-def render_drawer_menu():
-    st.markdown(STYLE_CSS, unsafe_allow_html=True)
-    email = st.session_state.user_email or "Пользователь"
-    first_letter = email[0].upper()
-
-    with st.sidebar:
-        # Профиль
-        st.markdown(
-            f"""<div class="profile-box">
-<div class="profile-avatar">{first_letter}</div>
-<div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-<div style="font-weight: 600; color: #222; font-size: 0.92rem;">{email}</div>
-<div style="color: #28a745; font-size: 0.78rem;">● Авторизован</div>
-</div>
-</div>""",
-            unsafe_allow_html=True
-        )
-
-        # История
-        st.markdown("<div style='font-weight: 600; font-size: 0.88rem; margin-bottom: 8px; color: #444;'>История исследований</div>", unsafe_allow_html=True)
-        
-        history = gsheets.fetch_user_history(email)
-        if history:
-            cards = []
-            for h in history:
-                card = (
-                    f'<div class="history-item">'
-                    f'<div style="color: #888; font-size: 0.76rem;">{h.get("timestamp", "")}</div>'
-                    f'<div style="margin-top: 3px;">Полей: <b>{h.get("image_count", 0)}</b></div>'
-                    f'<div>Концентрация: <b style="color: #ff4b4b;">{h.get("concentration", "")} кл/мл</b></div>'
-                    f'</div>'
-                )
-                cards.append(card)
-            history_html = "".join(cards)
-        else:
-            history_html = "<div style='color: #888; font-size: 0.85rem; padding: 10px 0;'>История исследований пуста.</div>"
-
-        st.markdown(f'<div class="history-scroll-box">{history_html}</div>', unsafe_allow_html=True)
-
-        # Нижние кнопки
-        c_clear, c_out = st.container(), st.container()
-        st.markdown('<div class="sidebar-footer-actions">', unsafe_allow_html=True)
-        if st.button("Очистить историю", key="clear_hist_btn", width="stretch", type="secondary"):
-            confirm_clear_history_dialog()
-            
-        if st.button("Выйти из аккаунта", key="logout_btn", width="stretch", type="secondary"):
-            confirm_logout_dialog()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 1. ЭКРАН: АВТОРИЗАЦИЯ
