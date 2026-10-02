@@ -49,7 +49,7 @@ def confirm_logout_dialog():
         if st.button("Отмена", width="stretch"):
             st.rerun()
 
-# Стили оформления страницы и Drawer-меню
+# Стили оформления страницы, Drawer-меню и модальных окон
 STYLE_CSS = """
 <style>
 /* 1. Отключаем полноэкранный зум на фотографиях */
@@ -57,7 +57,19 @@ button[title="View fullscreen"] {
     display: none !important;
 }
 
-/* 2. Отступ основного контента */
+/* 2. Центрирование модального диалогового окна строго по вертикали и горизонтали */
+div[role="dialog"] {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    max-height: 90vh !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25) !important;
+    border-radius: 12px !important;
+}
+
+/* 3. Отступ основного контента */
 .block-container {
     max-width: 860px !important;
     padding-top: 4.5rem !important;
@@ -65,27 +77,24 @@ button[title="View fullscreen"] {
     margin: 0 auto !important;
 }
 
-/* 3. Боковая панель Drawer: цвет темнее основного фона */
+/* 4. Сайдбар: контрастный фон и полная высота */
 [data-testid="stSidebar"],
-[data-testid="stSidebarContent"],
-[data-testid="stSidebarUserContent"] {
+[data-testid="stSidebarContent"] {
     background-color: #eef1f5 !important;
     border-right: 1px solid #dce1e7 !important;
-    padding-top: 0.8rem !important;
-    padding-bottom: 0.8rem !important;
-    overflow: hidden !important;
+}
+
+/* Внутренний контейнер сайдбара — чистый flex-столбец */
+[data-testid="stSidebarUserContent"] {
+    display: flex !important;
+    flex-direction: column !important;
     height: 100vh !important;
+    padding: 1rem 0.9rem 1.2rem 0.9rem !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
 }
 
-/* Убираем скроллбар у самого сайдбара */
-[data-testid="stSidebarContent"]::-webkit-scrollbar,
-[data-testid="stSidebarUserContent"]::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-}
-
-/* Карточка профиля */
+/* Профиль вверху */
 .profile-box {
     display: flex;
     align-items: center;
@@ -93,6 +102,7 @@ button[title="View fullscreen"] {
     padding-bottom: 0.8rem;
     border-bottom: 1px solid #dce1e7;
     margin-bottom: 0.8rem;
+    flex-shrink: 0;
 }
 .profile-avatar {
     width: 38px;
@@ -108,16 +118,17 @@ button[title="View fullscreen"] {
     flex-shrink: 0;
 }
 
-/* Область истории с запасом под нижние кнопки */
+/* Область истории: забирает ВСЁ свободное место между профилем и кнопками */
 .history-scroll-box {
-    height: calc(100vh - 240px) !important;
-    max-height: calc(100vh - 240px) !important;
+    flex-grow: 1 !important;
+    flex-shrink: 1 !important;
     overflow-y: auto !important;
     padding-right: 4px;
+    margin-bottom: 0.8rem !important;
     scrollbar-width: thin;
 }
 
-/* Карточки истории (белые на затемнённом фоне) */
+/* Карточки истории */
 .history-item {
     background-color: #ffffff;
     border-radius: 6px;
@@ -128,10 +139,20 @@ button[title="View fullscreen"] {
     box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
-/* Стилизация кнопок сайдбара */
+/* Нижний блок с кнопками: фиксируется снизу и никогда не сжимается */
+.sidebar-footer-wrapper {
+    flex-shrink: 0 !important;
+    margin-top: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid #dce1e7 !important;
+}
+
 [data-testid="stSidebar"] div.stButton button {
     border-radius: 6px !important;
-    height: 36px !important;
+    height: 38px !important;
     font-size: 0.85rem !important;
 }
 
