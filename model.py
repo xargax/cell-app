@@ -20,17 +20,23 @@ def load_yolo_model():
     return model
 
 def process_single_image(image_bytes, model):
-    # Корректно открываем байты через io.BytesIO
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     
-    # Запускаем детекцию на CPU (conf порог можно настроить, например 0.25)
+    # Инференс
     results = model.predict(source=img, conf=0.25, imgsz=640, device="cpu", verbose=False)[0]
     
-    # Количество найденных клеток
     cell_count = len(results.boxes) if results.boxes is not None else 0
     
-    # Отрисовываем разметку и переводим BGR в RGB
-    annotated_bgr = results.plot()
+    # Вариант 1 (рекомендуемый для микроскопии): аккуратные рамки БЕЗ перекрывающего текста
+    annotated_bgr = results.plot(
+        line_width=1,   # Тонкая рамка (1 px)
+        labels=False,   # Скрывает гигантские плашки с текстом
+        boxes=True
+    )
+    
+    # Если подписи всё же нужны, но микроскопические, используйте вместо этого:
+    # annotated_bgr = results.plot(line_width=1, font_size=6, labels=True, conf=False)
+
     annotated_rgb = annotated_bgr[..., ::-1]
     
     return annotated_rgb, cell_count
