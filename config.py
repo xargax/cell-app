@@ -5,4 +5,4 @@ VOLUME_PER_IMAGE_ML = 1e-5
 DILUTION_FACTOR = 10.0
 
 # ID файла весов из ссылки Google Диска
-MODEL_DRIVE_FILE_ID = "1hKcMGIE6AQfHHXsteTpG8HhogWTzaC95"
+MODEL_DRIVE_FILE_ID = "1de9cCXINgG43Rv99c70lsy2Hh-ZRtDi_"
