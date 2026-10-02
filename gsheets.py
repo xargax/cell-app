@@ -14,8 +14,15 @@ SCOPES = [
 @st.cache_resource
 def get_gcredentials():
     creds_dict = dict(st.secrets["gcp_service_account"])
-    # Коррекция экранирования переносов строк приватного ключа
-    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+    
+    # Исправление формата ключа PEM
+    pk = creds_dict["private_key"].strip()
+    if "\\n" in pk:
+        pk = pk.replace("\\n", "\n")
+    # Удаляем возможные случайные точки или пробелы в начале/конце
+    pk = pk.strip(". \t\r\n")
+    creds_dict["private_key"] = pk
+    
     return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
 
 @st.cache_resource(show_spinner=False)
