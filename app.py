@@ -56,20 +56,31 @@ button[title="View fullscreen"] {
     display: none !important;
 }
 
-/* 2. Центрирование модального окна строго посередине экрана */
-[data-testid="stModal"],
-div[data-baseweb="modal"] {
+/* 2. Принудительное центрирование модального окна (@st.dialog) строго в центр экрана */
+[data-testid="stDialog"],
+[data-testid="stModalContainer"],
+[data-testid="stModal"] {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    padding-top: 0 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 99999999 !important;
 }
 
+[data-testid="stDialog"] > div,
 div[role="dialog"] {
     margin: auto !important;
-    max-height: 85vh !important;
+    position: relative !important;
+    top: 0 !important;
+    transform: none !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28) !important;
     border-radius: 12px !important;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* 3. Отступ основного контента */
@@ -80,7 +91,7 @@ div[role="dialog"] {
     margin: 0 auto !important;
 }
 
-/* 4. Сайдбар: контрастный фон */
+/* 4. Сайдбар */
 [data-testid="stSidebar"],
 [data-testid="stSidebarContent"],
 [data-testid="stSidebarUserContent"] {
@@ -91,14 +102,13 @@ div[role="dialog"] {
     box-sizing: border-box !important;
 }
 
-/* Скрываем скроллбар сайдбара */
 [data-testid="stSidebarContent"]::-webkit-scrollbar,
 [data-testid="stSidebarUserContent"]::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
 }
 
-/* Шапка профиля */
+/* Профиль вверху */
 .profile-box {
     display: flex;
     align-items: center;
@@ -121,16 +131,15 @@ div[role="dialog"] {
     flex-shrink: 0;
 }
 
-/* Область истории: зафиксирована по высоте, чтобы не схлопывалась при пустой истории */
+/* Область истории: ограничена сверху, чтобы не наползать на приподнятые кнопки */
 .history-scroll-box {
-    height: calc(100vh - 245px) !important;
-    max-height: calc(100vh - 245px) !important;
+    height: calc(100vh - 290px) !important;
+    max-height: calc(100vh - 290px) !important;
     overflow-y: auto !important;
     padding-right: 4px;
     scrollbar-width: thin;
 }
 
-/* Карточки истории */
 .history-item {
     background-color: #ffffff;
     border-radius: 6px;
@@ -141,10 +150,10 @@ div[role="dialog"] {
     box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
-/* Кнопки в сайдбаре: фиксируем внизу панели */
+/* 5. Кнопки в сайдбаре: подняты выше, чтобы полностью помещаться на экране */
 [data-testid="stSidebar"] div.stButton:has(button[key="clear_hist_btn"]) {
     position: fixed !important;
-    bottom: 68px !important;
+    bottom: 115px !important;
     left: 18px !important;
     width: calc(100% - 36px) !important;
     max-width: 295px !important;
@@ -153,7 +162,7 @@ div[role="dialog"] {
 
 [data-testid="stSidebar"] div.stButton:has(button[key="logout_btn"]) {
     position: fixed !important;
-    bottom: 22px !important;
+    bottom: 65px !important;
     left: 18px !important;
     width: calc(100% - 36px) !important;
     max-width: 295px !important;
@@ -166,7 +175,7 @@ div[role="dialog"] {
     border-radius: 6px !important;
 }
 
-/* Круглые индикаторы для легенды */
+/* Индикаторы легенды */
 .dot-indicator {
     display: inline-block;
     width: 9px;
