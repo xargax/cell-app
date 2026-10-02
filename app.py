@@ -97,24 +97,25 @@ button[data-testid="stSidebarCollapsedControl"] svg {
     justify-content: center;
 }
 
-/* Область истории: растянута на высоту экрана за вычетом шапки и нижней кнопки */
+/* Область истории: оставляем комфортный зазор под приподнятую кнопку */
 .history-scroll-box {
-    height: calc(100vh - 230px) !important;
-    max-height: calc(100vh - 230px) !important;
+    height: calc(100vh - 250px) !important;
+    max-height: calc(100vh - 250px) !important;
     overflow-y: auto !important;
     padding-right: 6px;
 }
 
-/* Фиксация кнопки выхода в самом низу бокового меню */
+/* Кнопка выхода: приподнимаем на 48px от нижнего края экрана */
 div[data-testid="stSidebar"] div.stButton:has(button[key="logout_btn"]),
 div[data-testid="stSidebar"] div.stButton {
     position: fixed !important;
-    bottom: 24px !important;
+    bottom: 48px !important;
     left: 20px !important;
     width: calc(100% - 40px) !important;
     max-width: 295px !important;
     z-index: 100000 !important;
 }
+
 </style>
 """
 
