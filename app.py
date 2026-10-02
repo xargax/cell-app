@@ -96,6 +96,30 @@ button[data-testid="stSidebarCollapsedControl"] svg {
     align-items: center;
     justify-content: center;
 }
+/* Превращаем контейнер сайдбара в Flex-колонку на всю высоту окна */
+[data-testid="stSidebarUserContent"] {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    padding-bottom: 2rem !important;
+    box-sizing: border-box !important;
+}
+
+/* Область истории занимает всё доступное пространство и прокручивается */
+.history-scroll-container {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    padding-right: 4px;
+    margin-bottom: 1rem;
+    max-height: calc(100vh - 240px);
+}
+
+/* Контейнер кнопки выхода прижимается к самому низу */
+.sidebar-footer-container {
+    margin-top: auto !important;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
 </style>
 """
 
@@ -119,33 +143,36 @@ def render_drawer_menu():
             unsafe_allow_html=True
         )
 
-        # Секция 2: История исследований
+        # Секция 2: История исследований (растягивается на всю свободную высоту)
         st.markdown("##### 📋 История исследований")
+        
         history = gsheets.fetch_user_history(email)
         
         if history:
-            for h in history:
-                st.markdown(
-                    f"""
-                    <div class="history-item">
-                        <div style="color: #888; font-size: 0.78rem;">{h.get('timestamp', '')}</div>
-                        <div style="margin-top: 2px;">Полей: <b>{h.get('image_count', 0)}</b></div>
-                        <div>Концентрация: <b style="color: #ff4b4b;">{h.get('concentration', '')} кл/мл</b></div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+            history_html = "".join([
+                f"""
+                <div class="history-item">
+                    <div style="color: #888; font-size: 0.78rem;">{h.get('timestamp', '')}</div>
+                    <div style="margin-top: 2px;">Полей: <b>{h.get('image_count', 0)}</b></div>
+                    <div>Концентрация: <b style="color: #ff4b4b;">{h.get('concentration', '')} кл/мл</b></div>
+                </div>
+                """
+                for h in history
+            ])
         else:
-            st.caption("История исследований пока пуста.")
+            history_html = "<div style='color: #888; font-size: 0.88rem; padding: 8px 0;'>История исследований пока пуста.</div>"
 
-        st.divider()
+        # Оборачиваем элементы истории в скроллируемый flex-блок
+        st.markdown(f'<div class="history-scroll-container">{history_html}</div>', unsafe_allow_html=True)
 
-        # Секция 3: Нижняя секция с кнопкой выхода
+        # Секция 3: Прижатая к низу кнопка выхода
+        st.markdown('<div class="sidebar-footer-container">', unsafe_allow_html=True)
         if st.button("🚪 Выйти из аккаунта", use_container_width=True, type="secondary"):
             st.session_state.clear()
             st.session_state.screen = "auth"
             st.session_state.auth_mode = "login"
             st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 1. ЭКРАН: АВТОРИЗАЦИЯ
