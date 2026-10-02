@@ -134,6 +134,51 @@ button[title="View fullscreen"] {
 }
 </style>
 
+def render_drawer_menu():
+    st.markdown(STYLE_CSS, unsafe_allow_html=True)
+    email = st.session_state.user_email or "Пользователь"
+    first_letter = email[0].upper()
+
+    with st.sidebar:
+        # Профиль
+        st.markdown(
+            f"""<div class="profile-box">
+<div class="profile-avatar">{first_letter}</div>
+<div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+<div style="font-weight: 600; color: #222; font-size: 0.9rem;">{email}</div>
+<div style="color: #28a745; font-size: 0.75rem;">● Авторизован</div>
+</div>
+</div>""",
+            unsafe_allow_html=True
+        )
+
+        # История
+        st.markdown("<div style='font-weight: 600; font-size: 0.84rem; margin-bottom: 6px; color: #444;'>История исследований</div>", unsafe_allow_html=True)
+        
+        history = gsheets.fetch_user_history(email)
+        if history:
+            cards = [
+                f'<div class="history-item">'
+                f'<div style="color: #888; font-size: 0.74rem;">{h.get("timestamp", "")}</div>'
+                f'<div style="margin-top: 2px;">Полей: <b>{h.get("image_count", 0)}</b></div>'
+                f'<div>Концентрация: <b style="color: #ff4b4b;">{h.get("concentration", "")} кл/мл</b></div>'
+                f'</div>'
+                for h in history
+            ]
+            history_html = "".join(cards)
+        else:
+            history_html = "<div style='color: #888; font-size: 0.82rem; padding: 10px 0;'>История исследований пуста.</div>"
+
+        st.markdown(f'<div class="history-scroll-box">{history_html}</div>', unsafe_allow_html=True)
+
+        # Кнопки управления внизу панели
+        st.write("")
+        if st.button("Очистить историю", key="clear_hist_btn", width="stretch", type="secondary"):
+            confirm_clear_history_dialog()
+            
+        if st.button("Выйти из аккаунта", key="logout_btn", width="stretch", type="secondary"):
+            confirm_logout_dialog()
+
 # ==========================================
 # 1. ЭКРАН: АВТОРИЗАЦИЯ
 # ==========================================
