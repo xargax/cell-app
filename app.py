@@ -96,28 +96,63 @@ if "auth_mode" not in st.session_state:
 
 # --- ЭКРАН 1: АВТОРИЗАЦИЯ ---
 if st.session_state.screen == "auth":
+    # Стили для центрирования по вертикали и горизонтали
     st.markdown(
         """
         <style>
-        .auth-header {
+        /* Убираем стандартные отступы сверху для центрирования по высоте */
+        .block-container {
+            padding-top: 2rem !important;
+            padding-bottom: 2rem !important;
+            max-width: 100% !important;
+        }
+        .main-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+        .auth-card {
+            width: 100%;
+            max-width: 440px;
+        }
+        .auth-title {
             text-align: center;
-            margin-top: 1.5rem;
             margin-bottom: 1.5rem;
         }
+        .auth-title h1 {
+            font-size: 2.1rem;
+            margin-bottom: 0.3rem;
+        }
+        .auth-title p {
+            color: #888;
+            font-size: 0.95rem;
+            margin: 0;
+        }
         </style>
-        <div class="auth-header">
-            <h1>🔬 Подсчёт концентрации клеток</h1>
-            <p style="color: gray; font-size: 1.05rem;">Автоматический анализ микропрепаратов</p>
-        </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Делаем форму уже: центральная колонка занимает меньше ширины
-    left_pad, center_box, right_pad = st.columns([2.2, 1.6, 2.2])
+    # Центрирующая сетка
+    _, center_box, _ = st.columns([1, 1.2, 1])
 
     with center_box:
-        # Шаг 1: Выбор режима (кнопки)
+        # Небольшой отступ сверху для визуального баланса по высоте
+        st.markdown("<div style='height: 10vh;'></div>", unsafe_allow_html=True)
+        
+        st.markdown(
+            """
+            <div class="auth-title">
+                <h1>🔬 Подсчёт концентрации клеток</h1>
+                <p>Автоматический анализ микропрепаратов</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Выбор: Вход / Регистрация
         b_col1, b_col2 = st.columns(2)
         with b_col1:
             if st.button("Вход", use_container_width=True, type="primary" if st.session_state.auth_mode == "login" else "secondary"):
@@ -128,14 +163,15 @@ if st.session_state.screen == "auth":
                 st.session_state.auth_mode = "register"
                 st.rerun()
 
-        # Шаг 2: Появление формы при выборе
+        # Форма ввода
         if st.session_state.auth_mode is not None:
-            mode_title = "Вход в систему" if st.session_state.auth_mode == "login" else "Создание аккаунта"
-            btn_title = "Войти" if st.session_state.auth_mode == "login" else "Зарегистрироваться"
+            is_login = st.session_state.auth_mode == "login"
+            mode_title = "Вход в систему" if is_login else "Регистрация нового пользователя"
+            btn_title = "Войти" if is_login else "Зарегистрироваться"
 
             with st.container(border=True):
-                st.markdown(f"<h4 style='text-align: center; margin-top:0;'>{mode_title}</h4>", unsafe_allow_html=True)
-                email = st.text_input("Электронная почта", placeholder="name@example.com").strip().lower()
+                st.markdown(f"<h4 style='text-align: center; margin-top: 0.2rem;'>{mode_title}</h4>", unsafe_allow_html=True)
+                email = st.text_input("Электронная почта", placeholder="user@example.com").strip().lower()
                 password = st.text_input("Пароль", type="password", placeholder="••••••••")
                 
                 st.write("")
@@ -143,35 +179,33 @@ if st.session_state.screen == "auth":
                     if not email or not password:
                         st.warning("Пожалуйста, заполните оба поля")
                     elif "@" not in email or "." not in email:
-                        st.warning("Введите корректный адрес почты")
+                        st.warning("Введите корректный адрес электронной почты")
+                    elif "gcp_service_account" not in st.secrets:
+                        st.error("Ошибка конфигурации: отсутствуют секреты [gcp_service_account].")
                     else:
-                        # Проверка наличия секретов перед запросом к базе
-                        if "gcp_service_account" not in st.secrets:
-                            st.error("Ошибка конфигурации: в настройках Streamlit не добавлены секреты [gcp_service_account].")
-                        else:
-                            try:
-                                if st.session_state.auth_mode == "login":
-                                    user = gsheets.get_or_create_user(email, mode="login")
-                                    if not user:
-                                        st.error("Пользователь с такой почтой не найден. Пожалуйста, зарегистрируйтесь.")
-                                    elif auth.verify_password(password, user.get("password_hash", "")):
-                                        st.session_state.user_email = email
-                                        st.session_state.screen = "upload"
-                                        st.rerun()
-                                    else:
-                                        st.error("Неверный пароль. Попробуйте снова.")
+                        try:
+                            if is_login:
+                                user = gsheets.get_or_create_user(email, mode="login")
+                                if not user:
+                                    st.error("Нет такого зарегистрированного пользователя. Пожалуйста, пройдите регистрацию.")
+                                elif auth.verify_password(password, user.get("password_hash", "")):
+                                    st.session_state.user_email = email
+                                    st.session_state.screen = "upload"
+                                    st.rerun()
                                 else:
-                                    hashed = auth.hash_password(password)
-                                    new_user = gsheets.get_or_create_user(email, hashed, mode="register")
-                                    if new_user:
-                                        st.success("Регистрация успешна!")
-                                        st.session_state.user_email = email
-                                        st.session_state.screen = "upload"
-                                        st.rerun()
-                                    else:
-                                        st.error("Пользователь с такой почтой уже существует. Выберите «Вход».")
-                            except Exception as e:
-                                st.error(f"Не удалось подключиться к базе данных: {e}")
+                                    st.error("Неверный пароль. Попробуйте снова.")
+                            else:
+                                hashed = auth.hash_password(password)
+                                new_user = gsheets.get_or_create_user(email, hashed, mode="register")
+                                if new_user:
+                                    st.success("Регистрация успешна! Выполняется вход...")
+                                    st.session_state.user_email = email
+                                    st.session_state.screen = "upload"
+                                    st.rerun()
+                                else:
+                                    st.error("Пользователь с такой почтой уже существует. Пожалуйста, нажмите «Вход».")
+                        except Exception as e:
+                            st.error(f"Не удалось подключиться к базе данных: {e}")
                             
 # --- ЭКРАН 2: ЗАГРУЗКА ИЗОБРАЖЕНИЙ ---
 elif st.session_state.screen == "upload":
