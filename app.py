@@ -25,7 +25,7 @@ if "results" not in st.session_state:
 # Стили оформления страницы и Drawer-меню
 STYLE_CSS = """
 <style>
-/* Отступ сверху, чтобы элементы не перекрывались шапкой Streamlit */
+/* Отступ сверху для контента */
 .block-container {
     max-width: 840px !important;
     padding-top: 5rem !important;
@@ -33,7 +33,7 @@ STYLE_CSS = """
     margin: 0 auto !important;
 }
 
-/* Оформление нативного сайдбара как аккуратного Drawer-меню */
+/* Оформление Drawer-панели */
 [data-testid="stSidebar"] {
     background-color: #ffffff !important;
     border-right: 1px solid #e9ecef !important;
@@ -41,7 +41,7 @@ STYLE_CSS = """
     z-index: 999999 !important;
 }
 
-/* Кнопка открытия меню (гамбургер) в шапке Streamlit стилизуется под крупный кликабельный значок */
+/* Кнопка открытия меню (слева вверху) */
 button[data-testid="stSidebarCollapsedControl"] {
     display: flex !important;
     position: fixed !important;
@@ -65,7 +65,7 @@ button[data-testid="stSidebarCollapsedControl"] svg {
     height: 22px !important;
 }
 
-/* Карточки истории исследований в Drawer */
+/* Карточки истории */
 .history-item {
     background-color: #f8f9fa;
     border-radius: 8px;
@@ -75,7 +75,7 @@ button[data-testid="stSidebarCollapsedControl"] svg {
     font-size: 0.88rem;
 }
 
-/* Профиль вверху Drawer */
+/* Профиль вверху */
 .profile-box {
     display: flex;
     align-items: center;
@@ -96,29 +96,24 @@ button[data-testid="stSidebarCollapsedControl"] svg {
     align-items: center;
     justify-content: center;
 }
-/* Превращаем контейнер сайдбара в Flex-колонку на всю высоту окна */
-[data-testid="stSidebarUserContent"] {
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100vh !important;
-    padding-bottom: 2rem !important;
-    box-sizing: border-box !important;
-}
 
-/* Область истории занимает всё доступное пространство и прокручивается */
-.history-scroll-container {
-    flex: 1 1 auto !important;
+/* Область истории: растянута на высоту экрана за вычетом шапки и нижней кнопки */
+.history-scroll-box {
+    height: calc(100vh - 230px) !important;
+    max-height: calc(100vh - 230px) !important;
     overflow-y: auto !important;
-    padding-right: 4px;
-    margin-bottom: 1rem;
-    max-height: calc(100vh - 240px);
+    padding-right: 6px;
 }
 
-/* Контейнер кнопки выхода прижимается к самому низу */
-.sidebar-footer-container {
-    margin-top: auto !important;
-    padding-top: 1rem;
-    border-top: 1px solid #eee;
+/* Фиксация кнопки выхода в самом низу бокового меню */
+div[data-testid="stSidebar"] div.stButton:has(button[key="logout_btn"]),
+div[data-testid="stSidebar"] div.stButton {
+    position: fixed !important;
+    bottom: 24px !important;
+    left: 20px !important;
+    width: calc(100% - 40px) !important;
+    max-width: 295px !important;
+    z-index: 100000 !important;
 }
 </style>
 """
@@ -143,9 +138,8 @@ def render_drawer_menu():
             unsafe_allow_html=True
         )
 
-        # Секция 2: История исследований (растягивается на всю свободную высоту)
+        # Секция 2: История исследований (на всю доступную высоту)
         st.markdown("##### 📋 История исследований")
-        
         history = gsheets.fetch_user_history(email)
         
         if history:
@@ -160,19 +154,16 @@ def render_drawer_menu():
                 for h in history
             ])
         else:
-            history_html = "<div style='color: #888; font-size: 0.88rem; padding: 8px 0;'>История исследований пока пуста.</div>"
+            history_html = "<div style='color: #888; font-size: 0.88rem; padding: 12px 0;'>История исследований пока пуста.</div>"
 
-        # Оборачиваем элементы истории в скроллируемый flex-блок
-        st.markdown(f'<div class="history-scroll-container">{history_html}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="history-scroll-box">{history_html}</div>', unsafe_allow_html=True)
 
-        # Секция 3: Прижатая к низу кнопка выхода
-        st.markdown('<div class="sidebar-footer-container">', unsafe_allow_html=True)
-        if st.button("🚪 Выйти из аккаунта", use_container_width=True, type="secondary"):
+        # Секция 3: Кнопка выхода (прижата к низу через position: fixed)
+        if st.button("🚪 Выйти из аккаунта", key="logout_btn", use_container_width=True, type="secondary"):
             st.session_state.clear()
             st.session_state.screen = "auth"
             st.session_state.auth_mode = "login"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 1. ЭКРАН: АВТОРИЗАЦИЯ
