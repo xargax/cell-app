@@ -78,3 +78,11 @@ def fetch_user_history(email: str):
         {"timestamp": r[0], "image_count": r[1], "concentration": r[2]}
         for r in rows
     ]
+
+def clear_user_history(email: str):
+    init_db()
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM sessions WHERE email = ?", (email,))
+    conn.commit()
+    conn.close()
