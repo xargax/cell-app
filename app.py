@@ -332,19 +332,43 @@ elif st.session_state.screen == "results":
     st.title("Результаты анализа")
     res = st.session_state.results
 
+    # Метрики
     m1, m2, m3 = st.columns(3)
     m1.metric("Обработано полей", len(res["items"]))
-    m2.metric("Среднее число клеток", f"{res['avg_cells']:.1f}")
-    m3.metric("Концентрация", f"{res['concentration']:.2e} кл/мл")
+    m2.metric("В среднем клеток на поле", f"{res['avg_cells']:.1f}")
+    m3.metric("Итоговая концентрация", f"{res['concentration']:.2e} кл/мл")
 
-    st.divider()
+    st.write("")
+    
+    # Визуальная легенда для пользователя
+    st.markdown(
+        """
+        <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 10px 16px; margin-bottom: 1.5rem; display: flex; gap: 24px; font-size: 0.9rem; align-items: center;">
+            <span style="font-weight: 600; color: #333;">Обозначения:</span>
+            <span><span style="color: #0046ff; font-weight: bold; font-size: 1.1rem;">■</span> Жизнеспособные</span>
+            <span><span style="color: #00e6e6; font-weight: bold; font-size: 1.1rem;">■</span> Нежизнеспособные</span>
+            <span><span style="color: #bbb; -webkit-text-stroke: 1px black; font-weight: bold; font-size: 1.1rem;">■</span> Почкующиеся</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     cols = st.columns(len(res["items"]))
     for idx, item in enumerate(res["items"]):
         with cols[idx]:
             with st.container(border=True):
                 st.image(item["annotated"], use_container_width=True)
                 st.markdown(f"**{item['name']}**")
-                st.markdown(f"Найдено: **{item['count']}**")
+                st.markdown(f"Всего: **{item['count']}** кл.")
+                
+                # Детализация по типам клеток
+                c = item.get("classes", {})
+                st.caption(
+                    f"🔵 Жизнеспособных: **{c.get('viable', 0)}**<br>"
+                    f"🔷 Нежизнеспособных: **{c.get('dead', 0)}**<br>"
+                    f"⚪ Почкующихся: **{c.get('budding', 0)}**",
+                    unsafe_allow_html=True
+                )
 
     st.divider()
     if st.button("Новый расчёт", type="primary", use_container_width=True):
