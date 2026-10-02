@@ -267,23 +267,25 @@ elif st.session_state.screen == "upload":
             if not any(item["name"] == f.name for item in st.session_state.selected_images):
                 st.session_state.selected_images.append({"name": f.name, "bytes": f.read()})
 
-    if st.session_state.selected_images:
+if st.session_state.selected_images:
         st.write(f"Выбрано изображений: **{len(st.session_state.selected_images)}**")
 
-        # Фиксированная сетка по 2 карточки в ряд (чтобы одиночный снимок не растягивался на весь экран)
-        GRID_COLS = 2
+        # Компактная сетка: 4 миниатюры в строке
+        GRID_COLS = 4
         for row_start in range(0, len(st.session_state.selected_images), GRID_COLS):
             row_items = st.session_state.selected_images[row_start:row_start + GRID_COLS]
             cols = st.columns(GRID_COLS)
-            for idx, item in enumerate(row_items):
-                real_idx = row_start + idx
+            for idx in range(GRID_COLS):
                 with cols[idx]:
-                    with st.container(border=True):
-                        st.image(item["bytes"], width="stretch")
-                        st.caption(item["name"])
-                        if st.button("Удалить", key=f"del_{real_idx}", width="stretch"):
-                            st.session_state.selected_images.pop(real_idx)
-                            st.rerun()
+                    if idx < len(row_items):
+                        real_idx = row_start + idx
+                        item = row_items[idx]
+                        with st.container(border=True):
+                            st.image(item["bytes"], width="stretch")
+                            st.caption(item["name"][:14])
+                            if st.button("Удалить", key=f"del_{real_idx}", width="stretch"):
+                                st.session_state.selected_images.pop(real_idx)
+                                st.rerun()
 
         st.divider()
         if st.button("Начать подсчёт", type="primary", width="stretch"):
@@ -377,24 +379,27 @@ elif st.session_state.screen == "results":
     )
 
     # Сетка результатов по 2 в ряд
-    GRID_COLS = 2
+# Сетка результатов: 3 колонки
+    GRID_COLS = 3
     for row_start in range(0, len(res["items"]), GRID_COLS):
         row_items = res["items"][row_start:row_start + GRID_COLS]
         cols = st.columns(GRID_COLS)
-        for idx, item in enumerate(row_items):
+        for idx in range(GRID_COLS):
             with cols[idx]:
-                with st.container(border=True):
-                    st.image(item["annotated"], width="stretch")
-                    st.markdown(f"**{item['name']}**")
-                    st.markdown(f"Всего: **{item['count']}** кл.")
-                    
-                    c = item.get("classes", {})
-                    st.caption(
-                        f'<span class="dot-indicator dot-viable"></span>Жизнеспособных: <b>{c.get("viable", 0)}</b><br>'
-                        f'<span class="dot-indicator dot-dead"></span>Нежизнеспособных: <b>{c.get("dead", 0)}</b><br>'
-                        f'<span class="dot-indicator dot-budding"></span>Почкующихся: <b>{c.get("budding", 0)}</b>',
-                        unsafe_allow_html=True
-                    )
+                if idx < len(row_items):
+                    item = row_items[idx]
+                    with st.container(border=True):
+                        st.image(item["annotated"], width="stretch")
+                        st.markdown(f"**{item['name']}**")
+                        st.markdown(f"Всего: **{item['count']}** кл.")
+                        
+                        c = item.get("classes", {})
+                        st.caption(
+                            f'<span class="dot-indicator dot-viable"></span>Жизнеспособных: <b>{c.get("viable", 0)}</b><br>'
+                            f'<span class="dot-indicator dot-dead"></span>Нежизнеспособных: <b>{c.get("dead", 0)}</b><br>'
+                            f'<span class="dot-indicator dot-budding"></span>Почкующихся: <b>{c.get("budding", 0)}</b>',
+                            unsafe_allow_html=True
+                        )
 
     st.divider()
     if st.button("Новый расчёт", type="primary", width="stretch"):
