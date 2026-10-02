@@ -7,7 +7,7 @@ import model
 st.set_page_config(
     page_title="Cell Counter", 
     layout="centered", 
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Инициализация состояния
@@ -25,15 +25,15 @@ if "results" not in st.session_state:
 # Стили оформления страницы и Drawer-меню
 STYLE_CSS = """
 <style>
-/* 1. Отступ основного контента от верхней панели Streamlit */
+/* Отступ основного контента от верхней панели Streamlit */
 .block-container {
-    max-width: 840px !important;
-    padding-top: 5rem !important;
-    padding-bottom: 4rem !important;
+    max-width: 860px !important;
+    padding-top: 4.5rem !important;
+    padding-bottom: 3rem !important;
     margin: 0 auto !important;
 }
 
-/* 2. Поднимаем всё содержимое сайдбара к самому верху и убираем внешний ползунок */
+/* Настройка боковой панели */
 [data-testid="stSidebar"],
 [data-testid="stSidebarContent"],
 [data-testid="stSidebarUserContent"] {
@@ -41,16 +41,17 @@ STYLE_CSS = """
     padding-bottom: 0 !important;
     overflow: hidden !important;
     height: 100vh !important;
+    background-color: #ffffff !important;
 }
 
-/* Скрываем стандартный скроллбар у всего сайдбара во всех браузерах */
+/* Убираем полосы прокрутки самого сайдбара */
 [data-testid="stSidebarContent"]::-webkit-scrollbar,
 [data-testid="stSidebarUserContent"]::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
 }
 
-/* 3. Оформление карточки профиля вверху */
+/* Оформление профиля вверху */
 .profile-box {
     display: flex;
     align-items: center;
@@ -60,12 +61,12 @@ STYLE_CSS = """
     margin-bottom: 0.8rem;
 }
 .profile-avatar {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     background: linear-gradient(135deg, #ff4b4b, #ff7676);
     color: white;
     font-weight: 700;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -73,7 +74,7 @@ STYLE_CSS = """
     flex-shrink: 0;
 }
 
-/* 4. Расширенная область истории (занимает всё пространство и скроллится только внутри при избытке записей) */
+/* Расширенная область истории */
 .history-scroll-box {
     height: calc(100vh - 215px) !important;
     max-height: calc(100vh - 215px) !important;
@@ -82,16 +83,17 @@ STYLE_CSS = """
     scrollbar-width: thin;
 }
 
+/* Карточка записи истории */
 .history-item {
     background-color: #f8f9fa;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid #e9ecef;
     padding: 10px 12px;
     margin-bottom: 8px;
-    font-size: 0.86rem;
+    font-size: 0.85rem;
 }
 
-/* 5. Кнопка выхода: закреплена в самом низу с комфортным отступом 24px */
+/* Фиксация кнопки выхода внизу сайдбара */
 [data-testid="stSidebar"] div.stButton {
     position: fixed !important;
     bottom: 24px !important;
@@ -102,8 +104,24 @@ STYLE_CSS = """
 }
 
 [data-testid="stSidebar"] div.stButton > button {
-    border-radius: 8px !important;
-    height: 42px !important;
+    border-radius: 6px !important;
+    height: 40px !important;
+}
+
+/* Точечные цветные маркеры без эмодзи */
+.dot-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+.dot-viable { background-color: #0046ff; }
+.dot-dead { background-color: #00e6e6; }
+.dot-budding { 
+    background-color: #ffffff; 
+    border: 1.5px solid #555555; 
 }
 </style>
 """
@@ -114,43 +132,42 @@ def render_drawer_menu():
     first_letter = email[0].upper()
 
     with st.sidebar:
-        # Секция 1: Профиль пользователя в самом верху
+        # Профиль пользователя
         st.markdown(
-            f"""
-            <div class="profile-box">
-                <div class="profile-avatar">{first_letter}</div>
-                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    <div style="font-weight: 700; color: #222; font-size: 0.95rem;">{email}</div>
-                    <div style="color: #28a745; font-size: 0.8rem;">● Авторизован</div>
-                </div>
-            </div>
-            """,
+            f"""<div class="profile-box">
+<div class="profile-avatar">{first_letter}</div>
+<div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+<div style="font-weight: 600; color: #222; font-size: 0.92rem;">{email}</div>
+<div style="color: #28a745; font-size: 0.78rem;">● Авторизован</div>
+</div>
+</div>""",
             unsafe_allow_html=True
         )
 
-        # Секция 2: Заголовок и расширенная область истории
-        st.markdown("<div style='font-weight: 600; font-size: 0.9rem; margin-bottom: 8px;'>📋 История исследований</div>", unsafe_allow_html=True)
+        # Заголовок истории
+        st.markdown("<div style='font-weight: 600; font-size: 0.88rem; margin-bottom: 8px; color: #444;'>История исследований</div>", unsafe_allow_html=True)
         
         history = gsheets.fetch_user_history(email)
         if history:
-            history_html = "".join([
-                f"""
-                <div class="history-item">
-                    <div style="color: #888; font-size: 0.78rem;">{h.get('timestamp', '')}</div>
-                    <div style="margin-top: 2px;">Полей: <b>{h.get('image_count', 0)}</b></div>
-                    <div>Концентрация: <b style="color: #ff4b4b;">{h.get('concentration', '')} кл/мл</b></div>
-                </div>
-                """
-                for h in history
-            ])
+            cards = []
+            for h in history:
+                card = (
+                    f'<div class="history-item">'
+                    f'<div style="color: #888; font-size: 0.76rem;">{h.get("timestamp", "")}</div>'
+                    f'<div style="margin-top: 3px;">Полей: <b>{h.get("image_count", 0)}</b></div>'
+                    f'<div>Концентрация: <b style="color: #ff4b4b;">{h.get("concentration", "")} кл/мл</b></div>'
+                    f'</div>'
+                )
+                cards.append(card)
+            history_html = "".join(cards)
         else:
-            history_html = "<div style='color: #888; font-size: 0.86rem; padding: 12px 0;'>История исследований пока пуста.</div>"
+            history_html = "<div style='color: #888; font-size: 0.85rem; padding: 10px 0;'>История исследований пока пуста.</div>"
 
-        # Занимает всё пространство экрана
+        # Скроллируемый контейнер истории
         st.markdown(f'<div class="history-scroll-box">{history_html}</div>', unsafe_allow_html=True)
 
-        # Секция 3: Кнопка выхода (зафиксирована стилями внизу сайдбара)
-        if st.button("🚪 Выйти из аккаунта", key="logout_btn", use_container_width=True, type="secondary"):
+        # Кнопка выхода (прижата к низу)
+        if st.button("Выйти из аккаунта", key="logout_btn", width="stretch", type="secondary"):
             st.session_state.clear()
             st.session_state.screen = "auth"
             st.session_state.auth_mode = "login"
@@ -164,15 +181,15 @@ if st.session_state.screen == "auth":
         """
         <style>
         .block-container {
-            max-width: 480px !important;
+            max-width: 460px !important;
             padding-top: 8vh !important;
             margin: 0 auto !important;
         }
         [data-testid="stSidebarCollapsedControl"] { display: none !important; }
         </style>
         <div style="text-align: center; margin-bottom: 2rem;">
-            <h2>🔬 Cell Counter</h2>
-            <p style="color: gray; margin: 0;">Автоматический подсчёт концентрации клеток</p>
+            <h2>Cell Counter</h2>
+            <p style="color: gray; margin: 0; font-size: 0.95rem;">Автоматический подсчёт концентрации клеток</p>
         </div>
         """,
         unsafe_allow_html=True
@@ -180,11 +197,11 @@ if st.session_state.screen == "auth":
 
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("Вход", use_container_width=True, type="primary" if st.session_state.auth_mode == "login" else "secondary"):
+        if st.button("Вход", width="stretch", type="primary" if st.session_state.auth_mode == "login" else "secondary"):
             st.session_state.auth_mode = "login"
             st.rerun()
     with c2:
-        if st.button("Регистрация", use_container_width=True, type="primary" if st.session_state.auth_mode == "register" else "secondary"):
+        if st.button("Регистрация", width="stretch", type="primary" if st.session_state.auth_mode == "register" else "secondary"):
             st.session_state.auth_mode = "register"
             st.rerun()
 
@@ -196,7 +213,7 @@ if st.session_state.screen == "auth":
         password = st.text_input("Пароль", type="password", placeholder="••••••••")
         st.write("")
 
-        if st.button("Продолжить", type="primary", use_container_width=True):
+        if st.button("Продолжить", type="primary", width="stretch"):
             if not email or not password:
                 st.warning("Заполните оба поля")
             elif "@" not in email or "." not in email:
@@ -255,14 +272,14 @@ elif st.session_state.screen == "upload":
         for idx, item in enumerate(st.session_state.selected_images):
             with cols[idx]:
                 with st.container(border=True):
-                    st.image(item["bytes"], use_container_width=True)
+                    st.image(item["bytes"], width="stretch")
                     st.caption(item["name"][:14])
-                    if st.button("Удалить", key=f"del_{idx}", use_container_width=True):
+                    if st.button("Удалить", key=f"del_{idx}", width="stretch"):
                         st.session_state.selected_images.pop(idx)
                         st.rerun()
 
         st.divider()
-        if st.button("🚀 Начать подсчёт", type="primary", use_container_width=True):
+        if st.button("Начать подсчёт", type="primary", width="stretch"):
             st.session_state.screen = "processing"
             st.rerun()
     else:
@@ -273,7 +290,7 @@ elif st.session_state.screen == "upload":
 # ==========================================
 elif st.session_state.screen == "processing":
     st.markdown("<style>[data-testid='stSidebarCollapsedControl'] { display: none !important; }</style>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; margin-top: 10vh;'>Выполняется детекция клеток</h2>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; margin-top: 12vh;'>Выполняется детекция клеток</h3>", unsafe_allow_html=True)
     
     progress_bar = st.progress(0)
     status_text = st.empty()
@@ -305,7 +322,6 @@ elif st.session_state.screen == "processing":
     avg_cells = sum(counts) / total if total > 0 else 0
     concentration = (avg_cells / config.VOLUME_PER_IMAGE_ML) * config.DILUTION_FACTOR
 
-    # Сохранение в локальную БД
     gsheets.save_session_history(
         st.session_state.user_email,
         total,
@@ -332,7 +348,7 @@ elif st.session_state.screen == "results":
     st.title("Результаты анализа")
     res = st.session_state.results
 
-    # Метрики
+    # Основные метрики
     m1, m2, m3 = st.columns(3)
     m1.metric("Обработано полей", len(res["items"]))
     m2.metric("В среднем клеток на поле", f"{res['avg_cells']:.1f}")
@@ -340,14 +356,14 @@ elif st.session_state.screen == "results":
 
     st.write("")
     
-    # Визуальная легенда для пользователя
+    # Строгая лабораторная легенда с круглыми индикаторами
     st.markdown(
         """
-        <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 10px 16px; margin-bottom: 1.5rem; display: flex; gap: 24px; font-size: 0.9rem; align-items: center;">
+        <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 10px 16px; margin-bottom: 1.2rem; display: flex; gap: 24px; font-size: 0.88rem; align-items: center;">
             <span style="font-weight: 600; color: #333;">Обозначения:</span>
-            <span><span style="color: #0046ff; font-weight: bold; font-size: 1.1rem;">■</span> Жизнеспособные</span>
-            <span><span style="color: #00e6e6; font-weight: bold; font-size: 1.1rem;">■</span> Нежизнеспособные</span>
-            <span><span style="color: #bbb; -webkit-text-stroke: 1px black; font-weight: bold; font-size: 1.1rem;">■</span> Почкующиеся</span>
+            <span><span class="dot-indicator dot-viable"></span>Жизнеспособные</span>
+            <span><span class="dot-indicator dot-dead"></span>Нежизнеспособные</span>
+            <span><span class="dot-indicator dot-budding"></span>Почкующиеся</span>
         </div>
         """,
         unsafe_allow_html=True
@@ -357,21 +373,20 @@ elif st.session_state.screen == "results":
     for idx, item in enumerate(res["items"]):
         with cols[idx]:
             with st.container(border=True):
-                st.image(item["annotated"], use_container_width=True)
+                st.image(item["annotated"], width="stretch")
                 st.markdown(f"**{item['name']}**")
                 st.markdown(f"Всего: **{item['count']}** кл.")
                 
-                # Детализация по типам клеток
                 c = item.get("classes", {})
                 st.caption(
-                    f"🔵 Жизнеспособных: **{c.get('viable', 0)}**<br>"
-                    f"🔷 Нежизнеспособных: **{c.get('dead', 0)}**<br>"
-                    f"⚪ Почкующихся: **{c.get('budding', 0)}**",
+                    f'<span class="dot-indicator dot-viable"></span>Жизнеспособных: <b>{c.get("viable", 0)}</b><br>'
+                    f'<span class="dot-indicator dot-dead"></span>Нежизнеспособных: <b>{c.get("dead", 0)}</b><br>'
+                    f'<span class="dot-indicator dot-budding"></span>Почкующихся: <b>{c.get("budding", 0)}</b>',
                     unsafe_allow_html=True
                 )
 
     st.divider()
-    if st.button("Новый расчёт", type="primary", use_container_width=True):
+    if st.button("Новый расчёт", type="primary", width="stretch"):
         st.session_state.results = None
         st.session_state.screen = "upload"
         st.rerun()
