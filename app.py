@@ -33,7 +33,7 @@ STYLE_CSS = """
     margin: 0 auto !important;
 }
 
-/* Оформление Drawer-панели */
+/* Настройка самого сайдбара */
 [data-testid="stSidebar"] {
     background-color: #ffffff !important;
     border-right: 1px solid #e9ecef !important;
@@ -41,7 +41,17 @@ STYLE_CSS = """
     z-index: 999999 !important;
 }
 
-/* Кнопка открытия меню (слева вверху) */
+/* Внутренний контейнер сайдбара — чистый Flexbox на всю высоту экрана */
+[data-testid="stSidebarUserContent"] {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    padding: 1.5rem 1rem 1.8rem 1rem !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+/* Кнопка открытия сайдбара (слева вверху) */
 button[data-testid="stSidebarCollapsedControl"] {
     display: flex !important;
     position: fixed !important;
@@ -65,16 +75,6 @@ button[data-testid="stSidebarCollapsedControl"] svg {
     height: 22px !important;
 }
 
-/* Карточки истории */
-.history-item {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
-    padding: 10px 14px;
-    margin-bottom: 10px;
-    font-size: 0.88rem;
-}
-
 /* Профиль вверху */
 .profile-box {
     display: flex;
@@ -83,47 +83,46 @@ button[data-testid="stSidebarCollapsedControl"] svg {
     padding-bottom: 1rem;
     border-bottom: 1px solid #eee;
     margin-bottom: 1rem;
+    flex-shrink: 0;
 }
 .profile-avatar {
-    width: 44px;
-    height: 44px;
+    width: 42px;
+    height: 42px;
     background: linear-gradient(135deg, #ff4b4b, #ff7676);
     color: white;
     font-weight: bold;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-/* Отключаем полосу прокрутки у самого сайдбара */
-[data-testid="stSidebarContent"],
-[data-testid="stSidebarUserContent"] {
-    overflow: hidden !important;
-    height: 100vh !important;
-    padding-bottom: 0 !important;
-}
-
-/* Область истории: компактная адаптивная высота, скролл только при переполнении записями */
+/* Область истории: растягивается на ВСЮ доступную высоту и скроллится */
 .history-scroll-box {
-    max-height: calc(100vh - 280px) !important;
+    flex-grow: 1 !important;
     overflow-y: auto !important;
-    padding-right: 4px;
-    scrollbar-width: thin;
+    padding-right: 6px;
+    margin-bottom: 1rem !important;
 }
 
-/* Кнопка выхода: аккуратный отступ 32px от нижнего края */
-div[data-testid="stSidebar"] div.stButton:has(button[key="logout_btn"]),
-div[data-testid="stSidebar"] div.stButton {
-    position: fixed !important;
-    bottom: 32px !important;
-    left: 20px !important;
-    width: calc(100% - 40px) !important;
-    max-width: 295px !important;
-    z-index: 100000 !important;
+/* Карточки истории */
+.history-item {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 0.86rem;
 }
 
+/* Нижний блок: прижимается к низу и не сжимается */
+.sidebar-bottom-block {
+    margin-top: auto !important;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+    flex-shrink: 0 !important;
+}
 </style>
 """
 
@@ -133,12 +132,12 @@ def render_drawer_menu():
     first_letter = email[0].upper()
 
     with st.sidebar:
-        # Секция 1: Профиль пользователя
+        # 1. Шапка профиля
         st.markdown(
             f"""
             <div class="profile-box">
                 <div class="profile-avatar">{first_letter}</div>
-                <div style="overflow: hidden; text-overflow: ellipsis;">
+                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     <div style="font-weight: 700; color: #222; font-size: 0.95rem;">{email}</div>
                     <div style="color: #28a745; font-size: 0.8rem;">● Авторизован</div>
                 </div>
@@ -147,7 +146,7 @@ def render_drawer_menu():
             unsafe_allow_html=True
         )
 
-        # Секция 2: История исследований (на всю доступную высоту)
+        # 2. История исследований
         st.markdown("##### 📋 История исследований")
         history = gsheets.fetch_user_history(email)
         
@@ -165,9 +164,11 @@ def render_drawer_menu():
         else:
             history_html = "<div style='color: #888; font-size: 0.88rem; padding: 12px 0;'>История исследований пока пуста.</div>"
 
+        # Контейнер истории занимает ВСЁ пространство между профилем и низом
         st.markdown(f'<div class="history-scroll-box">{history_html}</div>', unsafe_allow_html=True)
 
-        # Секция 3: Кнопка выхода (прижата к низу через position: fixed)
+        # 3. Нижний блок с разделителем и кнопкой
+        st.markdown('<div class="sidebar-bottom-block"></div>', unsafe_allow_html=True)
         if st.button("🚪 Выйти из аккаунта", key="logout_btn", use_container_width=True, type="secondary"):
             st.session_state.clear()
             st.session_state.screen = "auth"
