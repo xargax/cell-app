@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Инициализация состояния
+# Инициализация сессионных переменных
 if "screen" not in st.session_state:
     st.session_state.screen = "auth"
 if "auth_mode" not in st.session_state:
@@ -25,7 +25,7 @@ if "results" not in st.session_state:
 # Диалоговые окна подтверждения
 @st.dialog("Очистка истории")
 def confirm_clear_history_dialog():
-    st.write("Вы уверены, что хотите удалить всю историю исследований? Это действие нельзя отменить.")
+    st.write("Вы действительно хотите удалить всю историю исследований? Это действие нельзя отменить.")
     c1, c2 = st.columns(2)
     with c1:
         if st.button("Да, очистить", type="primary", width="stretch"):
@@ -50,40 +50,57 @@ def confirm_logout_dialog():
             st.rerun()
 
 # Стили оформления страницы и Drawer-меню
+STYLE_CSS = """
 <style>
-/* 1. Отключаем полноэкранный зум картинок Streamlit */
+/* 1. Отключаем полноэкранный зум на фотографиях */
 button[title="View fullscreen"] {
     display: none !important;
 }
 
-/* 2. Контейнер сайдбара с правильным Flexbox без обрезания кнопок */
+/* 2. Отступ основного контента */
+.block-container {
+    max-width: 860px !important;
+    padding-top: 4.5rem !important;
+    padding-bottom: 3rem !important;
+    margin: 0 auto !important;
+}
+
+/* 3. Боковая панель Drawer: цвет темнее основного фона */
 [data-testid="stSidebar"],
 [data-testid="stSidebarContent"],
 [data-testid="stSidebarUserContent"] {
-    background-color: #f4f5f7 !important;
-    border-right: 1px solid #e2e5e9 !important;
-    padding: 0.8rem 0.8rem 0.5rem 0.8rem !important;
+    background-color: #eef1f5 !important;
+    border-right: 1px solid #dce1e7 !important;
+    padding-top: 0.8rem !important;
+    padding-bottom: 0.8rem !important;
     overflow: hidden !important;
     height: 100vh !important;
     box-sizing: border-box !important;
 }
 
-/* 3. Профиль пользователя */
+/* Убираем скроллбар у самого сайдбара */
+[data-testid="stSidebarContent"]::-webkit-scrollbar,
+[data-testid="stSidebarUserContent"]::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+}
+
+/* Карточка профиля */
 .profile-box {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding-bottom: 0.6rem;
-    border-bottom: 1px solid #e2e5e9;
-    margin-bottom: 0.6rem;
+    gap: 12px;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid #dce1e7;
+    margin-bottom: 0.8rem;
 }
 .profile-avatar {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     background: linear-gradient(135deg, #ff4b4b, #ff7676);
     color: white;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 1.05rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -91,39 +108,40 @@ button[title="View fullscreen"] {
     flex-shrink: 0;
 }
 
-/* 4. Область истории: запас снизу под 2 кнопки */
+/* Область истории с запасом под нижние кнопки */
 .history-scroll-box {
-    height: calc(100vh - 220px) !important;
-    max-height: calc(100vh - 220px) !important;
+    height: calc(100vh - 240px) !important;
+    max-height: calc(100vh - 240px) !important;
     overflow-y: auto !important;
     padding-right: 4px;
     scrollbar-width: thin;
 }
 
+/* Карточки истории (белые на затемнённом фоне) */
 .history-item {
     background-color: #ffffff;
     border-radius: 6px;
-    border: 1px solid #e0e4e8;
-    padding: 8px 10px;
-    margin-bottom: 6px;
-    font-size: 0.82rem;
+    border: 1px solid #dce1e7;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 0.84rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
-/* 5. Кнопки в Drawer: прижаты к низу, чётко видны */
+/* Стилизация кнопок сайдбара */
 [data-testid="stSidebar"] div.stButton button {
-    height: 34px !important;
-    font-size: 0.82rem !important;
     border-radius: 6px !important;
-    padding: 0 8px !important;
+    height: 36px !important;
+    font-size: 0.85rem !important;
 }
 
-/* Точечные маркеры */
+/* Круглые лабораторные индикаторы (без эмодзи) */
 .dot-indicator {
     display: inline-block;
     width: 9px;
     height: 9px;
     border-radius: 50%;
-    margin-right: 5px;
+    margin-right: 6px;
     vertical-align: middle;
 }
 .dot-viable { background-color: #0046ff; }
@@ -133,6 +151,7 @@ button[title="View fullscreen"] {
     border: 1.5px solid #555555; 
 }
 </style>
+"""
 
 def render_drawer_menu():
     st.markdown(STYLE_CSS, unsafe_allow_html=True)
@@ -145,33 +164,33 @@ def render_drawer_menu():
             f"""<div class="profile-box">
 <div class="profile-avatar">{first_letter}</div>
 <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-<div style="font-weight: 600; color: #222; font-size: 0.9rem;">{email}</div>
-<div style="color: #28a745; font-size: 0.75rem;">● Авторизован</div>
+<div style="font-weight: 600; color: #222; font-size: 0.92rem;">{email}</div>
+<div style="color: #28a745; font-size: 0.78rem;">● Авторизован</div>
 </div>
 </div>""",
             unsafe_allow_html=True
         )
 
         # История
-        st.markdown("<div style='font-weight: 600; font-size: 0.84rem; margin-bottom: 6px; color: #444;'>История исследований</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight: 600; font-size: 0.88rem; margin-bottom: 8px; color: #444;'>История исследований</div>", unsafe_allow_html=True)
         
         history = gsheets.fetch_user_history(email)
         if history:
             cards = [
                 f'<div class="history-item">'
-                f'<div style="color: #888; font-size: 0.74rem;">{h.get("timestamp", "")}</div>'
-                f'<div style="margin-top: 2px;">Полей: <b>{h.get("image_count", 0)}</b></div>'
+                f'<div style="color: #888; font-size: 0.76rem;">{h.get("timestamp", "")}</div>'
+                f'<div style="margin-top: 3px;">Полей: <b>{h.get("image_count", 0)}</b></div>'
                 f'<div>Концентрация: <b style="color: #ff4b4b;">{h.get("concentration", "")} кл/мл</b></div>'
                 f'</div>'
                 for h in history
             ]
             history_html = "".join(cards)
         else:
-            history_html = "<div style='color: #888; font-size: 0.82rem; padding: 10px 0;'>История исследований пуста.</div>"
+            history_html = "<div style='color: #888; font-size: 0.85rem; padding: 10px 0;'>История исследований пуста.</div>"
 
         st.markdown(f'<div class="history-scroll-box">{history_html}</div>', unsafe_allow_html=True)
 
-        # Кнопки управления внизу панели
+        # Нижние действия: очистка истории и выход
         st.write("")
         if st.button("Очистить историю", key="clear_hist_btn", width="stretch", type="secondary"):
             confirm_clear_history_dialog()
@@ -267,11 +286,11 @@ elif st.session_state.screen == "upload":
             if not any(item["name"] == f.name for item in st.session_state.selected_images):
                 st.session_state.selected_images.append({"name": f.name, "bytes": f.read()})
 
-if st.session_state.selected_images:
+    if st.session_state.selected_images:
         st.write(f"Выбрано изображений: **{len(st.session_state.selected_images)}**")
 
-        # Компактная сетка: 4 миниатюры в строке
-        GRID_COLS = 4
+        # Аккуратная сетка: 3 миниатюры в ряд, не раздувает фото на весь экран
+        GRID_COLS = 3
         for row_start in range(0, len(st.session_state.selected_images), GRID_COLS):
             row_items = st.session_state.selected_images[row_start:row_start + GRID_COLS]
             cols = st.columns(GRID_COLS)
@@ -282,7 +301,7 @@ if st.session_state.selected_images:
                         item = row_items[idx]
                         with st.container(border=True):
                             st.image(item["bytes"], width="stretch")
-                            st.caption(item["name"][:14])
+                            st.caption(item["name"])
                             if st.button("Удалить", key=f"del_{real_idx}", width="stretch"):
                                 st.session_state.selected_images.pop(real_idx)
                                 st.rerun()
@@ -378,8 +397,7 @@ elif st.session_state.screen == "results":
         unsafe_allow_html=True
     )
 
-    # Сетка результатов по 2 в ряд
-# Сетка результатов: 3 колонки
+    # Сетка результатов: 3 колонки
     GRID_COLS = 3
     for row_start in range(0, len(res["items"]), GRID_COLS):
         row_items = res["items"][row_start:row_start + GRID_COLS]
