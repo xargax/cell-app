@@ -269,7 +269,7 @@ elif st.session_state.screen == "upload":
         st.info("Загрузите хотя бы одно изображение для запуска обработки.")
 
 # ==========================================
-# 3. ЭКРАН: ОБРАБОТКА (Без меню)
+# 3. ЭКРАН: ОБРАБОТКА
 # ==========================================
 elif st.session_state.screen == "processing":
     st.markdown("<style>[data-testid='stSidebarCollapsedControl'] { display: none !important; }</style>", unsafe_allow_html=True)
@@ -278,7 +278,7 @@ elif st.session_state.screen == "processing":
     progress_bar = st.progress(0)
     status_text = st.empty()
 
-    status_text.caption("Загрузка весов модели...")
+    status_text.caption("Загрузка модели детекции...")
     model_instance = model.load_yolo_model()
     progress_bar.progress(20)
 
@@ -297,9 +297,10 @@ elif st.session_state.screen == "processing":
         progress_bar.progress(int(20 + (i + 1) * step))
 
     status_text.caption("Расчёт концентрации...")
-    avg_cells = sum(counts) / total
+    avg_cells = sum(counts) / total if total > 0 else 0
     concentration = (avg_cells / config.VOLUME_PER_IMAGE_ML) * config.DILUTION_FACTOR
 
+    # Сохранение в локальную БД
     gsheets.save_session_history(
         st.session_state.user_email,
         total,
