@@ -56,7 +56,7 @@ button[title="View fullscreen"] {
     display: none !important;
 }
 
-/* 2. Принудительное центрирование модального окна (@st.dialog) строго в центр экрана */
+/* 2. Центрирование модального окна строго в центре экрана */
 [data-testid="stDialog"],
 [data-testid="stModalContainer"],
 [data-testid="stModal"] {
@@ -83,10 +83,10 @@ div[role="dialog"] {
     border-radius: 12px !important;
 }
 
-/* 3. Отступ основного контента */
+/* 3. Центрирование и компактная ширина рабочей области */
 .block-container {
-    max-width: 860px !important;
-    padding-top: 4.5rem !important;
+    max-width: 740px !important;
+    padding-top: 4rem !important;
     padding-bottom: 3rem !important;
     margin: 0 auto !important;
 }
@@ -131,7 +131,7 @@ div[role="dialog"] {
     flex-shrink: 0;
 }
 
-/* Область истории: ограничена сверху, чтобы не наползать на приподнятые кнопки */
+/* Область истории */
 .history-scroll-box {
     height: calc(100vh - 290px) !important;
     max-height: calc(100vh - 290px) !important;
@@ -150,22 +150,22 @@ div[role="dialog"] {
     box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
-/* 5. Кнопки в сайдбаре: подняты выше, чтобы полностью помещаться на экране */
+/* 5. Кнопки в сайдбаре: сдвинуты влево с отступом от правой полосы */
 [data-testid="stSidebar"] div.stButton:has(button[key="clear_hist_btn"]) {
     position: fixed !important;
     bottom: 115px !important;
-    left: 18px !important;
-    width: calc(100% - 36px) !important;
-    max-width: 295px !important;
+    left: 16px !important;
+    width: calc(100% - 48px) !important;
+    max-width: 270px !important;
     z-index: 1000000 !important;
 }
 
 [data-testid="stSidebar"] div.stButton:has(button[key="logout_btn"]) {
     position: fixed !important;
     bottom: 65px !important;
-    left: 18px !important;
-    width: calc(100% - 36px) !important;
-    max-width: 295px !important;
+    left: 16px !important;
+    width: calc(100% - 48px) !important;
+    max-width: 270px !important;
     z-index: 1000000 !important;
 }
 
@@ -312,8 +312,9 @@ if st.session_state.screen == "auth":
 elif st.session_state.screen == "upload":
     render_drawer_menu()
 
-    st.title("Загрузка микропрепаратов")
-    st.caption("Добавьте изображения счетного поля (JPG, PNG)")
+    # Центрированный блок заголовка
+    st.markdown("<h2 style='text-align: center; margin-bottom: 4px;'>Загрузка микропрепаратов</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 0.9rem; margin-bottom: 1.5rem;'>Добавьте изображения счетного поля (JPG, PNG)</p>", unsafe_allow_html=True)
 
     uploaded_files = st.file_uploader(
         "Выберите файлы", 
@@ -328,10 +329,10 @@ elif st.session_state.screen == "upload":
                 st.session_state.selected_images.append({"name": f.name, "bytes": f.read()})
 
     if st.session_state.selected_images:
-        st.write(f"Выбрано изображений: **{len(st.session_state.selected_images)}**")
+        st.markdown(f"<div style='margin: 1rem 0 0.5rem 0; font-size: 0.9rem;'>Выбрано изображений: <b>{len(st.session_state.selected_images)}</b></div>", unsafe_allow_html=True)
 
-        # Аккуратная сетка: 3 миниатюры в ряд, не раздувает фото на весь экран
-        GRID_COLS = 3
+        # Компактная сетка: 4 аккуратные миниатюры в ряд
+        GRID_COLS = 4
         for row_start in range(0, len(st.session_state.selected_images), GRID_COLS):
             row_items = st.session_state.selected_images[row_start:row_start + GRID_COLS]
             cols = st.columns(GRID_COLS)
@@ -342,7 +343,7 @@ elif st.session_state.screen == "upload":
                         item = row_items[idx]
                         with st.container(border=True):
                             st.image(item["bytes"], width="stretch")
-                            st.caption(item["name"])
+                            st.caption(item["name"][:14])
                             if st.button("Удалить", key=f"del_{real_idx}", width="stretch"):
                                 st.session_state.selected_images.pop(real_idx)
                                 st.rerun()
@@ -353,7 +354,7 @@ elif st.session_state.screen == "upload":
             st.rerun()
     else:
         st.info("Загрузите хотя бы одно изображение для запуска обработки.")
-
+        
 # ==========================================
 # 3. ЭКРАН: ОБРАБОТКА
 # ==========================================
