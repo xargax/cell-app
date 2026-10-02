@@ -109,7 +109,7 @@ button[data-testid="stSidebarCollapsedControl"] svg {
 div[data-testid="stSidebar"] div.stButton:has(button[key="logout_btn"]),
 div[data-testid="stSidebar"] div.stButton {
     position: fixed !important;
-    bottom: 48px !important;
+    bottom: 80px !important;
     left: 20px !important;
     width: calc(100% - 40px) !important;
     max-width: 295px !important;
