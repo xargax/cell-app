@@ -22,10 +22,37 @@ if "selected_images" not in st.session_state:
 if "results" not in st.session_state:
     st.session_state.results = None
 
+# Диалоговые окна подтверждения
+@st.dialog("Очистка истории")
+def confirm_clear_history_dialog():
+    st.write("Вы уверены, что хотите удалить всю историю исследований? Это действие нельзя отменить.")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Да, очистить", type="primary", width="stretch"):
+            gsheets.clear_user_history(st.session_state.user_email)
+            st.rerun()
+    with c2:
+        if st.button("Отмена", width="stretch"):
+            st.rerun()
+
+@st.dialog("Выход из системы")
+def confirm_logout_dialog():
+    st.write("Вы действительно хотите выйти из текущего аккаунта?")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Да, выйти", type="primary", width="stretch"):
+            st.session_state.clear()
+            st.session_state.screen = "auth"
+            st.session_state.auth_mode = "login"
+            st.rerun()
+    with c2:
+        if st.button("Отмена", width="stretch"):
+            st.rerun()
+
 # Стили оформления страницы и Drawer-меню
 STYLE_CSS = """
 <style>
-/* Отступ основного контента от верхней панели Streamlit */
+/* Отступ основного контента */
 .block-container {
     max-width: 860px !important;
     padding-top: 4.5rem !important;
@@ -33,31 +60,32 @@ STYLE_CSS = """
     margin: 0 auto !important;
 }
 
-/* Настройка боковой панели */
+/* Настройка боковой панели (чуть темнее основного фона) */
 [data-testid="stSidebar"],
 [data-testid="stSidebarContent"],
 [data-testid="stSidebarUserContent"] {
+    background-color: #f4f5f7 !important;
+    border-right: 1px solid #e2e5e9 !important;
     padding-top: 0.8rem !important;
     padding-bottom: 0 !important;
     overflow: hidden !important;
     height: 100vh !important;
-    background-color: #ffffff !important;
 }
 
-/* Убираем полосы прокрутки самого сайдбара */
+/* Скрываем ползунки сайдбара */
 [data-testid="stSidebarContent"]::-webkit-scrollbar,
 [data-testid="stSidebarUserContent"]::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
 }
 
-/* Оформление профиля вверху */
+/* Профиль вверху */
 .profile-box {
     display: flex;
     align-items: center;
     gap: 12px;
     padding-bottom: 0.8rem;
-    border-bottom: 1px solid #edf0f2;
+    border-bottom: 1px solid #e2e5e9;
     margin-bottom: 0.8rem;
 }
 .profile-avatar {
@@ -74,41 +102,46 @@ STYLE_CSS = """
     flex-shrink: 0;
 }
 
-/* Расширенная область истории */
+/* Область истории */
 .history-scroll-box {
-    height: calc(100vh - 215px) !important;
-    max-height: calc(100vh - 215px) !important;
+    height: calc(100vh - 250px) !important;
+    max-height: calc(100vh - 250px) !important;
     overflow-y: auto !important;
     padding-right: 4px;
     scrollbar-width: thin;
 }
 
-/* Карточка записи истории */
+/* Карточка записи истории (белая на сером фоне) */
 .history-item {
-    background-color: #f8f9fa;
+    background-color: #ffffff;
     border-radius: 6px;
-    border: 1px solid #e9ecef;
+    border: 1px solid #e0e4e8;
     padding: 10px 12px;
     margin-bottom: 8px;
     font-size: 0.85rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 
-/* Фиксация кнопки выхода внизу сайдбара */
-[data-testid="stSidebar"] div.stButton {
+/* Контейнер нижних кнопок в сайдбаре */
+.sidebar-footer-actions {
     position: fixed !important;
-    bottom: 24px !important;
+    bottom: 20px !important;
     left: 18px !important;
     width: calc(100% - 36px) !important;
     max-width: 295px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
     z-index: 1000000 !important;
 }
 
-[data-testid="stSidebar"] div.stButton > button {
+.sidebar-footer-actions button {
     border-radius: 6px !important;
-    height: 40px !important;
+    height: 38px !important;
+    font-size: 0.88rem !important;
 }
 
-/* Точечные цветные маркеры без эмодзи */
+/* Точечные маркеры */
 .dot-indicator {
     display: inline-block;
     width: 10px;
@@ -132,7 +165,7 @@ def render_drawer_menu():
     first_letter = email[0].upper()
 
     with st.sidebar:
-        # Профиль пользователя
+        # Профиль
         st.markdown(
             f"""<div class="profile-box">
 <div class="profile-avatar">{first_letter}</div>
@@ -144,7 +177,7 @@ def render_drawer_menu():
             unsafe_allow_html=True
         )
 
-        # Заголовок истории
+        # История
         st.markdown("<div style='font-weight: 600; font-size: 0.88rem; margin-bottom: 8px; color: #444;'>История исследований</div>", unsafe_allow_html=True)
         
         history = gsheets.fetch_user_history(email)
@@ -161,17 +194,19 @@ def render_drawer_menu():
                 cards.append(card)
             history_html = "".join(cards)
         else:
-            history_html = "<div style='color: #888; font-size: 0.85rem; padding: 10px 0;'>История исследований пока пуста.</div>"
+            history_html = "<div style='color: #888; font-size: 0.85rem; padding: 10px 0;'>История исследований пуста.</div>"
 
-        # Скроллируемый контейнер истории
         st.markdown(f'<div class="history-scroll-box">{history_html}</div>', unsafe_allow_html=True)
 
-        # Кнопка выхода (прижата к низу)
+        # Нижние кнопки
+        c_clear, c_out = st.container(), st.container()
+        st.markdown('<div class="sidebar-footer-actions">', unsafe_allow_html=True)
+        if st.button("Очистить историю", key="clear_hist_btn", width="stretch", type="secondary"):
+            confirm_clear_history_dialog()
+            
         if st.button("Выйти из аккаунта", key="logout_btn", width="stretch", type="secondary"):
-            st.session_state.clear()
-            st.session_state.screen = "auth"
-            st.session_state.auth_mode = "login"
-            st.rerun()
+            confirm_logout_dialog()
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 1. ЭКРАН: АВТОРИЗАЦИЯ
@@ -222,7 +257,7 @@ if st.session_state.screen == "auth":
                 if is_login:
                     user = gsheets.get_or_create_user(email, mode="login")
                     if not user:
-                        st.error("Нет такого зарегистрированного пользователя. Пожалуйста, перейдите во вкладку «Регистрация».")
+                        st.error("Нет такого зарегистрированного пользователя. Перейдите во вкладку «Регистрация».")
                     elif auth.verify_password(password, user.get("password_hash", "")):
                         st.session_state.user_email = email
                         st.session_state.screen = "upload"
@@ -247,7 +282,7 @@ elif st.session_state.screen == "upload":
     render_drawer_menu()
 
     st.title("Загрузка микропрепаратов")
-    st.caption("Добавьте от 1 до 4 изображений счетного поля (JPG, PNG)")
+    st.caption("Добавьте изображения счетного поля (JPG, PNG)")
 
     uploaded_files = st.file_uploader(
         "Выберите файлы", 
@@ -258,25 +293,26 @@ elif st.session_state.screen == "upload":
 
     if uploaded_files:
         for f in uploaded_files:
-            if len(st.session_state.selected_images) < 4:
-                if not any(item["name"] == f.name for item in st.session_state.selected_images):
-                    st.session_state.selected_images.append({"name": f.name, "bytes": f.read()})
-            else:
-                st.warning("Достигнут лимит: максимум 4 изображения.")
-                break
+            if not any(item["name"] == f.name for item in st.session_state.selected_images):
+                st.session_state.selected_images.append({"name": f.name, "bytes": f.read()})
 
     if st.session_state.selected_images:
-        st.write(f"Выбрано изображений: **{len(st.session_state.selected_images)} / 4**")
+        st.write(f"Выбрано изображений: **{len(st.session_state.selected_images)}**")
 
-        cols = st.columns(len(st.session_state.selected_images))
-        for idx, item in enumerate(st.session_state.selected_images):
-            with cols[idx]:
-                with st.container(border=True):
-                    st.image(item["bytes"], width="stretch")
-                    st.caption(item["name"][:14])
-                    if st.button("Удалить", key=f"del_{idx}", width="stretch"):
-                        st.session_state.selected_images.pop(idx)
-                        st.rerun()
+        # Фиксированная сетка по 2 карточки в ряд (чтобы одиночный снимок не растягивался на весь экран)
+        GRID_COLS = 2
+        for row_start in range(0, len(st.session_state.selected_images), GRID_COLS):
+            row_items = st.session_state.selected_images[row_start:row_start + GRID_COLS]
+            cols = st.columns(GRID_COLS)
+            for idx, item in enumerate(row_items):
+                real_idx = row_start + idx
+                with cols[idx]:
+                    with st.container(border=True):
+                        st.image(item["bytes"], width="stretch")
+                        st.caption(item["name"])
+                        if st.button("Удалить", key=f"del_{real_idx}", width="stretch"):
+                            st.session_state.selected_images.pop(real_idx)
+                            st.rerun()
 
         st.divider()
         if st.button("Начать подсчёт", type="primary", width="stretch"):
@@ -356,7 +392,7 @@ elif st.session_state.screen == "results":
 
     st.write("")
     
-    # Строгая лабораторная легенда с круглыми индикаторами
+    # Легенда
     st.markdown(
         """
         <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 10px 16px; margin-bottom: 1.2rem; display: flex; gap: 24px; font-size: 0.88rem; align-items: center;">
@@ -369,21 +405,25 @@ elif st.session_state.screen == "results":
         unsafe_allow_html=True
     )
 
-    cols = st.columns(len(res["items"]))
-    for idx, item in enumerate(res["items"]):
-        with cols[idx]:
-            with st.container(border=True):
-                st.image(item["annotated"], width="stretch")
-                st.markdown(f"**{item['name']}**")
-                st.markdown(f"Всего: **{item['count']}** кл.")
-                
-                c = item.get("classes", {})
-                st.caption(
-                    f'<span class="dot-indicator dot-viable"></span>Жизнеспособных: <b>{c.get("viable", 0)}</b><br>'
-                    f'<span class="dot-indicator dot-dead"></span>Нежизнеспособных: <b>{c.get("dead", 0)}</b><br>'
-                    f'<span class="dot-indicator dot-budding"></span>Почкующихся: <b>{c.get("budding", 0)}</b>',
-                    unsafe_allow_html=True
-                )
+    # Сетка результатов по 2 в ряд
+    GRID_COLS = 2
+    for row_start in range(0, len(res["items"]), GRID_COLS):
+        row_items = res["items"][row_start:row_start + GRID_COLS]
+        cols = st.columns(GRID_COLS)
+        for idx, item in enumerate(row_items):
+            with cols[idx]:
+                with st.container(border=True):
+                    st.image(item["annotated"], width="stretch")
+                    st.markdown(f"**{item['name']}**")
+                    st.markdown(f"Всего: **{item['count']}** кл.")
+                    
+                    c = item.get("classes", {})
+                    st.caption(
+                        f'<span class="dot-indicator dot-viable"></span>Жизнеспособных: <b>{c.get("viable", 0)}</b><br>'
+                        f'<span class="dot-indicator dot-dead"></span>Нежизнеспособных: <b>{c.get("dead", 0)}</b><br>'
+                        f'<span class="dot-indicator dot-budding"></span>Почкующихся: <b>{c.get("budding", 0)}</b>',
+                        unsafe_allow_html=True
+                    )
 
     st.divider()
     if st.button("Новый расчёт", type="primary", width="stretch"):
