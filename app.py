@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import datetime
 import config
 import auth
-import gsheets
+import db as gsheets  # Используем новую локальную БД SQLite
 import model
 
 st.set_page_config(page_title="Cell Counter", layout="wide", initial_sidebar_state="collapsed")
